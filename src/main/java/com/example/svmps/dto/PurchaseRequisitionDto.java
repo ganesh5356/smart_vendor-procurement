@@ -14,25 +14,73 @@ public class PurchaseRequisitionDto {
 
     @NotNull
     private Long requesterId;
-    
+
     @NotNull
     private Long vendorId;
+
     private String status;
-    
+
     @NotNull
     private BigDecimal totalAmount;
 
-    // getters & setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getPrNumber() { return prNumber; }
-    public void setPrNumber(String prNumber) { this.prNumber = prNumber; }
-    public Long getRequesterId() { return requesterId; }
-    public void setRequesterId(Long requesterId) { this.requesterId = requesterId; }
-    public Long getVendorId() { return vendorId; }
-    public void setVendorId(Long vendorId) { this.vendorId = vendorId; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public BigDecimal getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
+    // Used only for approve/reject
+    private String comments;
+
+    // ===== GETTERS & SETTERS =====
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getPrNumber() {
+        return prNumber;
+    }
+
+    public void setPrNumber(String prNumber) {
+        this.prNumber = prNumber;
+    }
+
+    public Long getRequesterId() {
+        return requesterId;
+    }
+
+    public void setRequesterId(Long requesterId) {
+        this.requesterId = requesterId;
+    }
+
+    public Long getVendorId() {
+        return vendorId;
+    }
+
+    public void setVendorId(Long vendorId) {
+        this.vendorId = vendorId;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigDecimal totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public String getComments() {
+        return comments;
+    }
+
+    public void setComments(String comments) {
+        this.comments = comments;
+    }
 }
