@@ -47,8 +47,7 @@ public class UserService {
 
     public void deleteUser(Long id) {
         User u = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
-        u.setIsActive(false);
-        userRepository.save(u);
+        userRepository.delete(u);
     }
 
     public UserDto toDto(User u) {

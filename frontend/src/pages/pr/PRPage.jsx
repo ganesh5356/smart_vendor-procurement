@@ -5,7 +5,7 @@ import { extractErrorMessage } from '../../utils/errorHandler.js'
 import Modal from '../../components/Modal.jsx'
 
 export default function PRPage() {
-  const { token } = useAuth()
+  const { token, hasRole, user } = useAuth()
   const client = createClient(() => token)
   const [prs, setPrs] = useState([])
   const [form, setForm] = useState({
@@ -122,7 +122,9 @@ export default function PRPage() {
     }
     setApprovalError('')
     try {
-      await client.post(`/api/pr/${id}/approve?comments=Approved&approverId=1`, {})
+      // Use logged-in user ID if available, otherwise fallback to 1
+      const approverId = user?.id || 1
+      await client.post(`/api/pr/${id}/approve?comments=Approved&approverId=${approverId}`, {})
       await load()
     } catch (err) {
       const errorMsg = extractErrorMessage(err)
@@ -138,7 +140,8 @@ export default function PRPage() {
     }
     setApprovalError('')
     try {
-      await client.post(`/api/pr/${id}/reject?comments=Rejected&approverId=1`, {})
+      const approverId = user?.id || 1
+      await client.post(`/api/pr/${id}/reject?comments=Rejected&approverId=${approverId}`, {})
       await load()
     } catch (err) {
       const errorMsg = extractErrorMessage(err)
@@ -158,83 +161,125 @@ export default function PRPage() {
   }
 
   return (
-    <div className="panel">
-      <div className="panel-header">
-        <h3>Purchase Requisitions</h3>
-        <button className="btn" onClick={() => setShowCreate(true)}>Create PR</button>
-      </div>
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr><th>ID</th><th>Requester Email</th><th>Number</th><th>Status</th><th>Vendor</th><th>Total</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {prs.map(pr => (
-              <tr key={pr.id}>
-                <td>{pr.id}</td><td>{pr.requesterEmail}</td><td>{pr.prNumber}</td><td>{pr.status}</td><td>{pr.vendorId}</td><td>{pr.totalAmount}</td>
-                <td>
-                  <div style={{display:'flex', gap:'8px'}}>
-                    <button className="btn small" onClick={() => submit(pr.id)}>Submit</button>
-                    <button className="btn small" onClick={() => approve(pr.id)}>Approve</button>
-                    <button className="btn outline small" onClick={() => reject(pr.id)}>Reject</button>
-                    <button className="btn outline small" onClick={() => openHistory(pr.id)}>History</button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {approvalError && <div className="error" style={{marginTop:12}}>{approvalError}</div>}
+    <div className="pr-container">
+      <header className="page-header">
+        <h1 className="page-title">Purchase Requisitions</h1>
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT')) && (
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            + Create PR
+          </button>
+        )}
+      </header>
 
-      <Modal open={showCreate} title="Create Requisition" onClose={() => {
-        setShowCreate(false)
-        setError('')
-        setFieldErrors({})
-      }}>
-        <form className="form-grid" onSubmit={createPr}>
-          <label><span>Requester ID</span><input value={form.requesterId} onChange={e=>setForm({...form, requesterId:e.target.value})} style={{borderColor: fieldErrors.requesterId ? '#dc2626' : ''}} required />{fieldErrors.requesterId && <span className="field-error">{fieldErrors.requesterId}</span>}</label>
-          <label>
-            <span>Requester Email</span>
-            <input
-                type="email"
-                value={form.requesterEmail}
-                onChange={e=>setForm({...form, requesterEmail:e.target.value})}
-                style={{borderColor: fieldErrors.requesterEmail ? '#dc2626' : ''}}
-                required
-            />
-            {fieldErrors.requesterEmail && <span className="field-error">{fieldErrors.requesterEmail}</span>}
-          </label>
-          <label><span>Vendor ID</span><input value={form.vendorId} onChange={e=>setForm({...form, vendorId:e.target.value})} style={{borderColor: fieldErrors.vendorId ? '#dc2626' : ''}} required />{fieldErrors.vendorId && <span className="field-error">{fieldErrors.vendorId}</span>}</label>
-          <label><span>Item</span><input value={form.items[0]} onChange={e=>setForm({...form, items:[e.target.value]})} style={{borderColor: fieldErrors.items ? '#dc2626' : ''}} required />{fieldErrors.items && <span className="field-error">{fieldErrors.items}</span>}</label>
-          <label><span>Quantity</span><input type="number" min="1" value={form.quantities[0]} onChange={e=>setForm({...form, quantities:[e.target.value]})} style={{borderColor: fieldErrors.quantities ? '#dc2626' : ''}} required />{fieldErrors.quantities && <span className="field-error">{fieldErrors.quantities}</span>}</label>
-          <label><span>Amount</span><input type="number" min="1" value={form.itemAmounts[0]} onChange={e=>setForm({...form, itemAmounts:[e.target.value]})} style={{borderColor: fieldErrors.itemAmounts ? '#dc2626' : ''}} required />{fieldErrors.itemAmounts && <span className="field-error">{fieldErrors.itemAmounts}</span>}</label>
-          <div className="modal-actions">
-            <button className="btn primary">Create PR</button>
-            <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Cancel</button>
-          </div>
-          {error && <div className="error">{error}</div>}
-        </form>
-      </Modal>
-      {selectedId && (
-        <div className="table-wrap" style={{marginTop:12}}>
+      {approvalError && <div className="error-banner">❌ {approvalError}</div>}
+
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">All Requisitions</h2>
+        </div>
+        <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Action</th><th>Approver</th><th>Comments</th><th>Time</th></tr>
+              <tr>
+                <th>ID</th>
+                <th>Requester</th>
+                <th>PR Number</th>
+                <th>Status</th>
+                <th>Vendor ID</th>
+                <th>Total</th>
+                <th>Actions</th>
+              </tr>
             </thead>
             <tbody>
-              {history.map(h => (
-                <tr key={h.id}>
-                  <td>{h.action}</td>
-                  <td>{h.approverId}</td>
-                  <td>{h.comments}</td>
-                  <td>{h.actionAt}</td>
+              {prs.map(pr => (
+                <tr key={pr.id}>
+                  <td>{pr.id}</td>
+                  <td>{pr.requesterEmail}</td>
+                  <td><div style={{ fontWeight: 600 }}>{pr.prNumber}</div></td>
+                  <td>
+                    <span className={`badge ${
+                      pr.status === 'APPROVED' ? 'badge-success' : 
+                      pr.status === 'REJECTED' ? 'badge-danger' : 
+                      pr.status === 'SUBMITTED' ? 'badge-info' : 'badge-warning'
+                    }`}>
+                      {pr.status}
+                    </span>
+                  </td>
+                  <td>{pr.vendorId}</td>
+                  <td>{pr.totalAmount?.toFixed(2)}</td>
+                  <td>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {(hasRole('ADMIN') || hasRole('PROCUREMENT')) && (
+                        <button className="btn btn-outline btn-small" onClick={() => submit(pr.id)}>Submit</button>
+                      )}
+                      {(hasRole('ADMIN') || hasRole('FINANCE')) && (
+                        <button className="btn btn-primary btn-small" onClick={() => approve(pr.id)}>Approve</button>
+                      )}
+                      {hasRole('ADMIN') && (
+                        <button className="btn btn-outline btn-small" style={{ color: 'var(--danger)' }} onClick={() => reject(pr.id)}>Reject</button>
+                      )}
+                      <button className="btn btn-outline btn-small" onClick={() => openHistory(pr.id)}>History</button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </div>
+
+      <Modal open={showCreate} title="Create New Requisition" onClose={() => setShowCreate(false)}>
+        <form className="form-grid" onSubmit={createPr}>
+          <label className="form-label"><span>Requester ID</span><input className="form-input" value={form.requesterId} onChange={e=>setForm({...form, requesterId:e.target.value})} style={{borderColor: fieldErrors.requesterId ? 'var(--danger)' : ''}} required />{fieldErrors.requesterId && <span className="field-error">{fieldErrors.requesterId}</span>}</label>
+          <label className="form-label">
+            <span>Requester Email</span>
+            <input
+                className="form-input"
+                type="email"
+                value={form.requesterEmail}
+                onChange={e=>setForm({...form, requesterEmail:e.target.value})}
+                style={{borderColor: fieldErrors.requesterEmail ? 'var(--danger)' : ''}}
+                required
+            />
+            {fieldErrors.requesterEmail && <span className="field-error">{fieldErrors.requesterEmail}</span>}
+          </label>
+          <label className="form-label"><span>Vendor ID</span><input className="form-input" value={form.vendorId} onChange={e=>setForm({...form, vendorId:e.target.value})} style={{borderColor: fieldErrors.vendorId ? 'var(--danger)' : ''}} required />{fieldErrors.vendorId && <span className="field-error">{fieldErrors.vendorId}</span>}</label>
+          <label className="form-label"><span>Item</span><input className="form-input" value={form.items[0]} onChange={e=>setForm({...form, items:[e.target.value]})} style={{borderColor: fieldErrors.items ? 'var(--danger)' : ''}} required />{fieldErrors.items && <span className="field-error">{fieldErrors.items}</span>}</label>
+          <label className="form-label"><span>Quantity</span><input className="form-input" type="number" min="1" value={form.quantities[0]} onChange={e=>setForm({...form, quantities:[e.target.value]})} style={{borderColor: fieldErrors.quantities ? 'var(--danger)' : ''}} required />{fieldErrors.quantities && <span className="field-error">{fieldErrors.quantities}</span>}</label>
+          <label className="form-label"><span>Amount</span><input className="form-input" type="number" min="1" value={form.itemAmounts[0]} onChange={e=>setForm({...form, itemAmounts:[e.target.value]})} style={{borderColor: fieldErrors.itemAmounts ? 'var(--danger)' : ''}} required />{fieldErrors.itemAmounts && <span className="field-error">{fieldErrors.itemAmounts}</span>}</label>
+          <div className="modal-footer" style={{ gridColumn: '1 / -1' }}>
+            <button type="button" className="btn btn-outline" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="btn btn-primary">Create Requisition</button>
+          </div>
+          {error && <div className="error-banner" style={{gridColumn: '1 / -1'}}>{error}</div>}
+        </form>
+      </Modal>
+
+      {selectedId && (
+        <div className="panel" style={{ marginTop: 24 }}>
+          <div className="panel-header">
+            <h3 className="section-title">Approval History for PR #{selectedId}</h3>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr><th>Action</th><th>Approver ID</th><th>Comments</th><th>Timestamp</th></tr>
+              </thead>
+              <tbody>
+                {history.map(h => (
+                  <tr key={h.id}>
+                    <td><span className={`badge ${h.action === 'APPROVED' ? 'badge-success' : 'badge-danger'}`}>{h.action}</span></td>
+                    <td>{h.approverId}</td>
+                    <td>{h.comments}</td>
+                    <td>{new Date(h.actionAt).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
   )
 }
+

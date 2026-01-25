@@ -1,122 +1,220 @@
-import { Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, NavLink, Link, useNavigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext.jsx'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Landing from './pages/Landing.jsx'
 import DownloadReports from './pages/DownloadReports.jsx'
+import VendorsPage from './pages/vendors/VendorsPage.jsx'
+import PRPage from './pages/pr/PRPage.jsx'
+import POPage from './pages/po/POPage.jsx'
+import UsersPage from './pages/users/UsersPage.jsx'
+import VendorProfile from './pages/vendors/VendorProfile.jsx'
+import VendorPO from './pages/vendors/VendorPO.jsx'
 
-function LandingHeader() {
-  const { token, logout } = useAuth()
+function Sidebar() {
+  const { hasRole, logout } = useAuth()
   const nav = useNavigate()
 
-  return (
-    <header className="landing-header">
-      <div className="landing-header-inner">
-        <Link to="/" className="brand-link">
-          <div className="brand">
-            <span className="logo">SVPMS</span>
-            <span className="subtitle">Supplier & Procurement</span>
-          </div>
-        </Link>
+  const handleLogout = () => {
+    logout()
+    nav('/')
+  }
 
-        <nav className="landing-nav">
-          {!token && (
-            <>
-              <Link to="/login" className="nav-link">Login</Link>
-              <Link to="/register" className="nav-link">Register</Link>
-              <Link to="/login" className="btn primary small">Get Started</Link>
-            </>
-          )}
-          {token && (
-            <>
-              <Link to="/app" className="btn outline small">Dashboard</Link>
-              <button className="btn outline small" onClick={() => { logout(); nav('/') }}>
-                Logout
-              </button>
-            </>
-          )}
-        </nav>
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-header">
+        <Link to="/app" className="sidebar-brand">
+          <span className="sidebar-logo">SVPMS</span>
+          <span className="sidebar-subtitle">Supplier & Procurement</span>
+        </Link>
       </div>
-    </header>
+      <nav className="sidebar-nav">
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+          <NavLink to="/app" end className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">📊</span> Dashboard
+          </NavLink>
+        )}
+        
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+          <NavLink to="/app/vendors" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">🏢</span> Vendors
+          </NavLink>
+        )}
+
+        {hasRole('VENDOR') && (
+          <NavLink to="/app/my-profile" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">👤</span> My Profile
+          </NavLink>
+        )}
+
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+          <NavLink to="/app/pr" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">📋</span> Requisitions
+          </NavLink>
+        )}
+
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+          <NavLink to="/app/po" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">📦</span> Purchase Orders
+          </NavLink>
+        )}
+
+        {hasRole('VENDOR') && (
+          <NavLink to="/app/my-orders" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">🚚</span> My Orders
+          </NavLink>
+        )}
+
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+          <NavLink to="/app/reports" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">📈</span> Reports
+          </NavLink>
+        )}
+
+        {hasRole('ADMIN') && (
+          <NavLink to="/app/users" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+            <span className="sidebar-link-icon">👥</span> User Management
+          </NavLink>
+        )}
+      </nav>
+      <div className="sidebar-footer">
+        <button className="logout-btn" onClick={handleLogout}>
+          <span className="sidebar-link-icon">🚪</span> Logout
+        </button>
+      </div>
+    </aside>
   )
 }
 
-function Header() {
-  const { token, logout } = useAuth()
-  const nav = useNavigate()
-
+function TopBar() {
+  const { roles } = useAuth()
   return (
-    <header className="app-header">
-      <Link to="/" className="brand-link">
-        <div className="brand">
-          <span className="logo">SVPMS</span>
-          <span className="subtitle">Supplier & Procurement</span>
-        </div>
-      </Link>
+    <div className="top-bar">
+      <div className="user-profile">
+        <span className="user-role-badge badge badge-info">{roles[0]}</span>
+        <div className="user-avatar">U</div>
+      </div>
+    </div>
+  )
+}
 
-      <nav className="header-nav">
-        {!token && (
-          <>
-            <Link to="/login" className="btn outline small">Login</Link>
-            <Link to="/register" className="btn outline small">Register</Link>
-          </>
-        )}
-        {token && (
-          <>
-            <Link to="/app" className="btn outline small">Dashboard</Link>
-            <button className="btn outline small" onClick={() => { logout(); nav('/') }}>
-              Logout
-            </button>
-          </>
-        )}
-      </nav>
-    </header>
+function AppLayout({ children }) {
+  return (
+    <div className="app">
+      <Sidebar />
+      <div className="main-wrapper">
+        <TopBar />
+        <main className="content-area">
+          {children}
+        </main>
+      </div>
+    </div>
   )
 }
 
 function PrivateRoute({ children }) {
   const { token } = useAuth()
   if (!token) return <Navigate to="/login" replace />
-  return children
+  return <AppLayout>{children}</AppLayout>
+}
+
+function RoleRoute({ roles = [], children }) {
+  const { token, hasRole } = useAuth()
+  if (!token) return <Navigate to="/login" replace />
+  const allowed = roles.some(r => hasRole(r))
+  if (!allowed) return <Navigate to="/app" replace />
+  return <AppLayout>{children}</AppLayout>
+}
+
+function DashboardWrapper() {
+  const { hasRole } = useAuth()
+  if (hasRole('VENDOR')) return <Navigate to="/app/my-profile" replace />
+  return <Dashboard />
 }
 
 export default function App() {
-  const location = useLocation()
-  const isLanding = location.pathname === '/'
-
   return (
     <AuthProvider>
-      <div className="app">
-        {isLanding ? <LandingHeader /> : <Header />}
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Login initialTab="register" />} />
 
-        <main className="app-main">
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Login initialTab="register" />} />
+        <Route
+          path="/app"
+          element={
+            <PrivateRoute>
+              <DashboardWrapper />
+            </PrivateRoute>
+          }
+        />
 
-            <Route
-              path="/app"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
+        <Route
+          path="/app/vendors"
+          element={
+            <RoleRoute roles={['ADMIN', 'PROCUREMENT', 'FINANCE']}>
+              <VendorsPage />
+            </RoleRoute>
+          }
+        />
 
-            <Route
-              path="/app/reports"
-              element={
-                <PrivateRoute>
-                  <DownloadReports />
-                </PrivateRoute>
-              }
-            />
+        <Route
+          path="/app/pr"
+          element={
+            <RoleRoute roles={['ADMIN', 'PROCUREMENT', 'FINANCE']}>
+              <PRPage />
+            </RoleRoute>
+          }
+        />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
+        <Route
+          path="/app/po"
+          element={
+            <RoleRoute roles={['ADMIN', 'PROCUREMENT', 'FINANCE']}>
+              <POPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/app/reports"
+          element={
+            <RoleRoute roles={['ADMIN', 'PROCUREMENT', 'FINANCE']}>
+              <DownloadReports />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/app/users"
+          element={
+            <RoleRoute roles={['ADMIN']}>
+              <UsersPage />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/app/my-profile"
+          element={
+            <RoleRoute roles={['VENDOR']}>
+              <VendorProfile />
+            </RoleRoute>
+          }
+        />
+
+        <Route
+          path="/app/my-orders"
+          element={
+            <RoleRoute roles={['VENDOR']}>
+              <VendorPO />
+            </RoleRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AuthProvider>
   )
 }
+

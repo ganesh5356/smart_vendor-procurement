@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react'
-import VendorsPage from './vendors/VendorsPage.jsx'
-import PRPage from './pr/PRPage.jsx'
-import POPage from './po/POPage.jsx'
-import UsersPage from './users/UsersPage.jsx'
 import { useAuth } from '../auth/AuthContext.jsx'
 import { createClient } from '../api/client.js'
 import { useNavigate } from "react-router-dom"
 
 export default function Dashboard() {
-  const [tab, setTab] = useState('vendors')
-  const [poFilter, setPoFilter] = useState('all')
-  const { hasRole, token } = useAuth()
+  const { token } = useAuth()
   const client = createClient(() => token)
   const navigate = useNavigate()
 
@@ -53,64 +47,52 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <section className="view dashboard">
+    <div className="dashboard-container">
+      <header className="page-header">
+        <h1 className="page-title">Dashboard Overview</h1>
+      </header>
 
-      
+      <div className="dashboard-stats">
+        <StatCard 
+          label="Total Vendors" 
+          value={stats.vendors} 
+          icon="🏢" 
+          onClick={() => navigate('/app/vendors')} 
+        />
+        <StatCard 
+          label="Purchase Requisitions" 
+          value={stats.prs} 
+          icon="📋" 
+          onClick={() => navigate('/app/pr')} 
+        />
+        <StatCard 
+          label="Purchase Orders" 
+          value={stats.pos} 
+          icon="📦" 
+          onClick={() => navigate('/app/po')} 
+        />
+        <StatCard 
+          label="GST Compliant POs" 
+          value={stats.posWithAllGst} 
+          icon="🛡️" 
+          onClick={() => navigate('/app/po')} 
+        />
+      </div>
 
-      {/* ===== STATS SECTION ===== */}
-      <section className="dashboard-section">
-        <h3 className="section-title">Overview</h3>
-
-        <div className="dashboard-stats">
-          <StatCard label="Vendors" value={stats.vendors} icon="🏢" onClick={() => setTab('vendors')} />
-          <StatCard label="Requisitions" value={stats.prs} icon="📋" onClick={() => setTab('pr')} />
-          <StatCard label="Orders" value={stats.pos} icon="📦" onClick={() => { setTab('po'); setPoFilter('all') }} />
-          <StatCard label="POs with GST" value={stats.posWithAllGst} icon="⚙️" onClick={() => { setTab('po'); setPoFilter('gst') }} />
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">Quick Insights</h2>
         </div>
-      </section>
-
-      {/* ===== ACTIONS SECTION ===== */}
-      <section className="dashboard-section">
-        <h3 className="section-title">Actions</h3>
-
-        <div className="dashboard-stats">
-          <div
-            className="stat-card-dashboard action-card"
-            onClick={() => navigate('/app/reports')}
-          >
-            <div className="stat-icon">⬇️</div>
-            <div className="stat-content">
-              <div className="stat-name">Download Reports</div>
-              <div className="stat-subtitle">Vendors · PR · PO</div>
-            </div>
-          </div>
+        <div className="panel-body">
+          <p style={{ color: 'var(--text-muted)' }}>
+            Welcome to the Supplier & Procurement Management System. Use the sidebar to navigate through vendors, requisitions, and orders.
+          </p>
         </div>
-      </section>
-
-      {/* ===== TABS SECTION ===== */}
-      <section className="dashboard-section">
-        <nav className="tabs">
-          <button className={`tab ${tab === 'vendors' ? 'active' : ''}`} onClick={() => setTab('vendors')}>Vendors</button>
-          <button className={`tab ${tab === 'pr' ? 'active' : ''}`} onClick={() => setTab('pr')}>Requisitions</button>
-          <button className={`tab ${tab === 'po' ? 'active' : ''}`} onClick={() => { setTab('po'); setPoFilter('all') }}>Orders</button>
-          {hasRole('ADMIN') && (
-            <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>Users</button>
-          )}
-        </nav>
-
-        <div className="tab-panels">
-          {tab === 'vendors' && <VendorsPage />}
-          {tab === 'pr' && <PRPage />}
-          {tab === 'po' && <POPage filter={poFilter} onFilterChange={setPoFilter} />}
-          {tab === 'users' && hasRole('ADMIN') && <UsersPage />}
-        </div>
-      </section>
-
-    </section>
+      </div>
+    </div>
   )
 }
 
-/* ===== SMALL REUSABLE CARD COMPONENT ===== */
 function StatCard({ label, value, icon, onClick }) {
   return (
     <div className="stat-card-dashboard" onClick={onClick}>
@@ -122,3 +104,4 @@ function StatCard({ label, value, icon, onClick }) {
     </div>
   )
 }
+

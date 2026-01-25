@@ -1,8 +1,11 @@
 package com.example.svmps.security;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -31,12 +34,28 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {
+
             String token = header.substring(7);
+
+            // 1️⃣ Extract username
             String username = jwtUtil.extractUsername(token);
 
+            // 2️⃣ Extract roles from JWT
+            List<String> roles = jwtUtil.extractRoles(token);
+
+            // 3️⃣ Convert roles → GrantedAuthority (ROLE_ prefix REQUIRED)
+            List<SimpleGrantedAuthority> authorities =
+                    roles.stream()
+                         .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+                         .collect(Collectors.toList());
+
+            // 4️⃣ Set authentication with authorities
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
-                            username, null, null);
+                            username,
+                            null,
+                            authorities
+                    );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }

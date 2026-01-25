@@ -6,12 +6,14 @@ public class LoginResponse {
 
     private String token;
     private Instant expiresAt;
+    private Long userId;
 
     public LoginResponse() {}
 
-    public LoginResponse(String token, Instant expiresAt) {
+    public LoginResponse(String token, Instant expiresAt, Long userId) {
         this.token = token;
         this.expiresAt = expiresAt;
+        this.userId = userId;
     }
 
     public String getToken() {
@@ -22,11 +24,19 @@ public class LoginResponse {
         return expiresAt;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
     public void setToken(String token) {
         this.token = token;
     }
 
     public void setExpiresAt(Instant expiresAt) {
         this.expiresAt = expiresAt;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 }

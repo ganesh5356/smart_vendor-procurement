@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom'
-import procurementImg from '../assets/illustration-procurement.svg'
-import vendorsImg from '../assets/illustration-vendors.svg'
 
 export default function Landing() {
   const swaggerUrl = `${window.location.protocol}//${window.location.hostname}:8082/swagger-ui.html`
@@ -15,9 +13,8 @@ export default function Landing() {
             and track approvals in a clean, role-aware process.
           </p>
           <div className="landing-hero-cta">
-            <Link to="/login" className="btn primary">Login</Link>
-            <Link to="/register" className="btn outline">Create Account</Link>
-            <a href={swaggerUrl} className="btn outline" target="_blank" rel="noreferrer">API Docs</a>
+            <Link to="/login" className="btn btn-primary">Get Started</Link>
+            <Link to="/register" className="btn btn-outline">Create Account</Link>
           </div>
           <div className="landing-badges">
             <span className="badge">JWT Authentication</span>
@@ -27,7 +24,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="landing-hero-media">
-          <img className="hero-image" src={procurementImg} alt="Procurement dashboard illustration" />
+          <div className="hero-placeholder-icon">🛡️</div>
         </div>
       </div>
 
@@ -92,7 +89,7 @@ export default function Landing() {
           </div>
         </div>
         <div className="landing-hero-media">
-          <img className="hero-image" src={vendorsImg} alt="Vendor management illustration" />
+          <div className="hero-placeholder-icon">🤝</div>
         </div>
       </div>
 

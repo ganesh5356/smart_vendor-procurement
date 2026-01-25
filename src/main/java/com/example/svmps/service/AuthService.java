@@ -6,8 +6,10 @@ import com.example.svmps.dto.RegisterRequest;
 import com.example.svmps.dto.RegisterResponse;
 import com.example.svmps.entity.Role;
 import com.example.svmps.entity.User;
+import com.example.svmps.entity.Vendor;
 import com.example.svmps.repository.RoleRepository;
 import com.example.svmps.repository.UserRepository;
+import com.example.svmps.repository.VendorRepository;
 import com.example.svmps.security.JwtUtil;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,16 +24,19 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final VendorRepository vendorRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     public AuthService(
             UserRepository userRepository,
             RoleRepository roleRepository,
+            VendorRepository vendorRepository,
             JwtUtil jwtUtil
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.vendorRepository = vendorRepository;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = new BCryptPasswordEncoder();
     }
@@ -76,6 +81,25 @@ public class AuthService {
         user.setRoles(assignedRoles);
         User savedUser = userRepository.save(user);
 
+        // 🔥 If VENDOR role is assigned, create a Vendor profile
+        if (assignedRoles.stream().anyMatch(r -> "VENDOR".equals(r.getName()))) {
+            if (!vendorRepository.findByEmail(savedUser.getEmail()).isPresent()) {
+                Vendor v = new Vendor();
+                v.setName(savedUser.getUsername() + " Company");
+                v.setEmail(savedUser.getEmail());
+                v.setContactName(savedUser.getUsername());
+                v.setPhone(req.getPhone() != null && !req.getPhone().isBlank() ? req.getPhone() : "0000000000");
+                v.setAddress("Not Provided");
+                v.setGstNumber("00AAAAA0000A0Z0");
+                v.setIsActive(true);
+                v.setCompliant(true);
+                v.setRating(5.0);
+                v.setLocation(req.getLocation() != null && !req.getLocation().isBlank() ? req.getLocation() : "Default");
+                v.setCategory(req.getCategory() != null && !req.getCategory().isBlank() ? req.getCategory() : "Default");
+                vendorRepository.save(v);
+            }
+        }
+
         String token = jwtUtil.generateToken(
                 savedUser.getUsername(),
                 savedUser.getRoles()
@@ -116,6 +140,6 @@ public class AuthService {
         Instant expiresAt = Instant.now()
                 .plusMillis(jwtUtil.getExpirationTimeMs());
 
-        return new LoginResponse(token, expiresAt);
+        return new LoginResponse(token, expiresAt, user.getId());
     }
 }

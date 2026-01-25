@@ -3,18 +3,23 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 const AuthCtx = createContext(null)
 export function useAuth() { return useContext(AuthCtx) }
 
+
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(null)
   const [expiresAt, setExpiresAt] = useState(null)
   const [roles, setRoles] = useState([])
+  const [user, setUser] = useState(null)
 
-  function decodeRoles(t) {
+  function decodeUser(t) {
     try {
       const payload = JSON.parse(atob(t.split('.')[1]))
-      const rs = payload.roles || []
-      return Array.isArray(rs) ? rs : []
+      return {
+        id: payload.userId || payload.id || null, // Ensure ID is extracted if present
+        username: payload.sub || null,
+        roles: Array.isArray(payload.roles) ? payload.roles : []
+      }
     } catch {
-      return []
+      return { id: null, username: null, roles: [] }
     }
   }
 
@@ -24,7 +29,9 @@ export function AuthProvider({ children }) {
     if (t && e && Date.now() < Number(e)) {
       setToken(t)
       setExpiresAt(Number(e))
-      setRoles(decodeRoles(t))
+      const user = decodeUser(t)
+      setRoles(user.roles)
+      setUser(user)
     }
   }, [])
 
@@ -35,7 +42,11 @@ export function AuthProvider({ children }) {
     localStorage.setItem('sv_expires', String(e))
     setToken(t)
     setExpiresAt(e)
-    setRoles(decodeRoles(t))
+    const decoded = decodeUser(t)
+    // Enrich with explicit userId from response
+    const userData = { ...decoded, id: res.userId || decoded.id }
+    setRoles(userData.roles)
+    setUser(userData)
   }
 
   function logout() {
@@ -44,12 +55,13 @@ export function AuthProvider({ children }) {
     setToken(null)
     setExpiresAt(null)
     setRoles([])
+    setUser(null)
   }
 
   function hasRole(r) {
     return roles.includes(r)
   }
 
-  const value = useMemo(() => ({ token, expiresAt, roles, hasRole, login, logout }), [token, expiresAt, roles])
+  const value = useMemo(() => ({ token, expiresAt, roles, user, hasRole, login, logout }), [token, expiresAt, roles, user])
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>
 }

@@ -5,7 +5,7 @@ import { extractErrorMessage } from '../../utils/errorHandler.js'
 import Modal from '../../components/Modal.jsx'
 
 export default function VendorsPage() {
-  const { token } = useAuth()
+  const { token, hasRole } = useAuth()
   const client = createClient(() => token)
 
   const [vendors, setVendors] = useState([])
@@ -161,133 +161,156 @@ async function hardDeleteVendor(id) {
 
 
   return (
-    <div className="panel">
-      <div className="panel-header">
-        <h3>Vendors</h3>
-        <button className="btn" onClick={() => setShowCreate(true)}>Add Vendor</button>
-      </div>
+    <div className="vendors-container">
+      <header className="page-header">
+        <h1 className="page-title">Vendor Management</h1>
+        {(hasRole('ADMIN') || hasRole('PROCUREMENT')) && (
+          <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            + Add Vendor
+          </button>
+        )}
+      </header>
 
-          {deleteSuccess && (
-      <div style={{ marginBottom: 10, color: '#16a34a', fontWeight: 600 }}>
-        ✅ {deleteSuccess}
-      </div>
-    )}
+      {deleteSuccess && <div className="success-banner">✅ {deleteSuccess}</div>}
+      {deleteError && <div className="error-banner">❌ {deleteError}</div>}
+      {successMsg && <div className="success-banner">✅ {successMsg}</div>}
 
-    {deleteError && (
-      <div style={{ marginBottom: 10, color: '#dc2626', fontWeight: 600 }}>
-        ❌ {deleteError}
-      </div>
-    )}
-
-
-      {/* ✅ SUCCESS MESSAGE */}
-      {successMsg && (
-        <div style={{ marginBottom: 10, color: '#16a34a', fontWeight: 600 }}>
-          ✅ {successMsg}
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">All Vendors</h2>
         </div>
-      )}
-
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>ID</th><th>Name</th><th>Contact</th><th>Email</th><th>Phone</th>
-              <th>Location</th><th>Category</th><th>Rating</th>
-              <th>Compliant</th><th>Active</th><th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {vendors.map(v => (
-              <tr key={v.id}>
-                <td>{v.id}</td>
-                <td>{v.name}</td>
-                <td>{v.contactName}</td>
-                <td>{v.email}</td>
-                <td>{v.phone}</td>
-                <td>{v.location}</td>
-                <td>{v.category}</td>
-                <td>{v.rating}</td>
-                <td>{v.compliant ? 'Yes' : 'No'}</td>
-                <td>{v.isActive ? 'Yes' : 'No'}</td>
-                <td>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn small" onClick={() => setEdit(v)}>Edit</button>
-                    {deleteId === v.id ? (
-                      <>
-                        <button className="btn outline small" style={{ color: '#ff6b6b' }} onClick={() => softDeleteVendor(v.id)}>Soft Delete</button>
-                        <button className="btn outline small" style={{ color: '#c92a2a' }} onClick={() => hardDeleteVendor(v.id)}>Hard Delete</button>
-                        <button className="btn outline small" onClick={() => setDeleteId(null)}>Cancel</button>
-                      </>
-                    ) : (
-                      <button className="btn outline small" onClick={() => setDeleteId(v.id)}>Delete</button>
-                    )}
-                  </div>
-                </td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Location</th>
+                <th>Category</th>
+                <th>Rating</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {vendors.map(v => (
+                <tr key={v.id}>
+                  <td>{v.id}</td>
+                  <td><div style={{ fontWeight: 600 }}>{v.name}</div></td>
+                  <td>{v.contactName}</td>
+                  <td>{v.email}</td>
+                  <td>{v.phone}</td>
+                  <td>{v.location}</td>
+                  <td><span className="badge badge-info">{v.category}</span></td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      ⭐ {v.rating}
+                    </div>
+                  </td>
+                  <td>
+                    {v.isActive ? (
+                      <span className="badge badge-success">Active</span>
+                    ) : (
+                      <span className="badge badge-danger">Inactive</span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {(hasRole('ADMIN') || hasRole('PROCUREMENT')) && (
+                        <button className="btn btn-outline btn-small" onClick={() => setEdit(v)}>Edit</button>
+                      )}
+                      {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+                        deleteId === v.id ? (
+                          <>
+                            {(hasRole('ADMIN') || hasRole('PROCUREMENT') || hasRole('FINANCE')) && (
+                              <button className="btn btn-outline btn-small" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={() => softDeleteVendor(v.id)}>Soft</button>
+                            )}
+                            {hasRole('ADMIN') && (
+                              <button className="btn btn-outline btn-small" style={{ color: 'var(--danger)', background: 'rgba(220, 38, 38, 0.1)' }} onClick={() => hardDeleteVendor(v.id)}>Hard</button>
+                            )}
+                            <button className="btn btn-outline btn-small" onClick={() => setDeleteId(null)}>Cancel</button>
+                          </>
+                        ) : (
+                          <button className="btn btn-outline btn-small" style={{ color: 'var(--text-muted)' }} onClick={() => setDeleteId(v.id)}>Delete</button>
+                        )
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <Modal open={showCreate} title="Create Vendor" onClose={() => setShowCreate(false)}>
+      <Modal open={showCreate} title="Create New Vendor" onClose={() => setShowCreate(false)}>
         <form className="form-grid" onSubmit={createVendor}>
-          <label><span>Name</span><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{borderColor: fieldErrors.name ? '#dc2626' : ''}} required />{fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}</label>
-          <label><span>Contact Name</span><input value={form.contactName} onChange={e=>setForm({...form,contactName:e.target.value})} style={{borderColor: fieldErrors.contactName ? '#dc2626' : ''}} required />{fieldErrors.contactName && <span className="field-error">{fieldErrors.contactName}</span>}</label>
-          <label><span>Email</span><input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={{borderColor: fieldErrors.email ? '#dc2626' : ''}} required />{fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}</label>
-          <label><span>Phone</span><input value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={{borderColor: fieldErrors.phone ? '#dc2626' : ''}} required />{fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}</label>
-          <label><span>Address</span><input value={form.address} onChange={e=>setForm({...form,address:e.target.value})} style={{borderColor: fieldErrors.address ? '#dc2626' : ''}} required />{fieldErrors.address && <span className="field-error">{fieldErrors.address}</span>}</label>
-          <label><span>GST Number</span><input value={form.gstNumber} onChange={e=>setForm({...form,gstNumber:e.target.value})} style={{borderColor: fieldErrors.gstNumber ? '#dc2626' : ''}} required />{fieldErrors.gstNumber && <span className="field-error">{fieldErrors.gstNumber}</span>}</label>
-          <label><span>Location</span><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} style={{borderColor: fieldErrors.location ? '#dc2626' : ''}} required />{fieldErrors.location && <span className="field-error">{fieldErrors.location}</span>}</label>
-          <label><span>Category</span><input value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={{borderColor: fieldErrors.category ? '#dc2626' : ''}} required />{fieldErrors.category && <span className="field-error">{fieldErrors.category}</span>}</label>
-          <label><span>Rating</span><input type="number" min="1" max="5" step="0.1" value={form.rating} onChange={e=>setForm({...form,rating:e.target.value})} style={{borderColor: fieldErrors.rating ? '#dc2626' : ''}} required />{fieldErrors.rating && <span className="field-error">{fieldErrors.rating}</span>}</label>
-          <label><span>Compliant</span>
-            <select value={form.compliant ? 'true':'false'} onChange={e=>setForm({...form,compliant:e.target.value==='true'})}>
+          <label className="form-label"><span>Name</span><input className="form-input" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{borderColor: fieldErrors.name ? 'var(--danger)' : ''}} required />{fieldErrors.name && <span className="field-error">{fieldErrors.name}</span>}</label>
+          <label className="form-label"><span>Contact Name</span><input className="form-input" value={form.contactName} onChange={e=>setForm({...form,contactName:e.target.value})} style={{borderColor: fieldErrors.contactName ? 'var(--danger)' : ''}} required />{fieldErrors.contactName && <span className="field-error">{fieldErrors.contactName}</span>}</label>
+          <label className="form-label"><span>Email</span><input className="form-input" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={{borderColor: fieldErrors.email ? 'var(--danger)' : ''}} required />{fieldErrors.email && <span className="field-error">{fieldErrors.email}</span>}</label>
+          <label className="form-label"><span>Phone</span><input className="form-input" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} style={{borderColor: fieldErrors.phone ? 'var(--danger)' : ''}} required />{fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}</label>
+          <label className="form-label"><span>Address</span><input className="form-input" value={form.address} onChange={e=>setForm({...form,address:e.target.value})} style={{borderColor: fieldErrors.address ? 'var(--danger)' : ''}} required />{fieldErrors.address && <span className="field-error">{fieldErrors.address}</span>}</label>
+          <label className="form-label"><span>GST Number</span><input className="form-input" value={form.gstNumber} onChange={e=>setForm({...form,gstNumber:e.target.value})} style={{borderColor: fieldErrors.gstNumber ? 'var(--danger)' : ''}} required />{fieldErrors.gstNumber && <span className="field-error">{fieldErrors.gstNumber}</span>}</label>
+          <label className="form-label"><span>Location</span><input className="form-input" value={form.location} onChange={e=>setForm({...form,location:e.target.value})} style={{borderColor: fieldErrors.location ? 'var(--danger)' : ''}} required />{fieldErrors.location && <span className="field-error">{fieldErrors.location}</span>}</label>
+          <label className="form-label"><span>Category</span><input className="form-input" value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={{borderColor: fieldErrors.category ? 'var(--danger)' : ''}} required />{fieldErrors.category && <span className="field-error">{fieldErrors.category}</span>}</label>
+          <label className="form-label"><span>Rating</span><input className="form-input" type="number" min="1" max="5" step="0.1" value={form.rating} onChange={e=>setForm({...form,rating:e.target.value})} style={{borderColor: fieldErrors.rating ? 'var(--danger)' : ''}} required />{fieldErrors.rating && <span className="field-error">{fieldErrors.rating}</span>}</label>
+          <label className="form-label"><span>Compliant</span>
+            <select className="form-select" value={form.compliant ? 'true':'false'} onChange={e=>setForm({...form,compliant:e.target.value==='true'})}>
               <option value="true">Yes</option>
               <option value="false">No</option>
             </select>
           </label>
-          <label><span>Active</span>
-            <select value={form.isActive ? 'true':'false'} onChange={e=>setForm({...form,isActive:e.target.value==='true'})}>
+          <label className="form-label"><span>Active</span>
+            <select className="form-select" value={form.isActive ? 'true':'false'} onChange={e=>setForm({...form,isActive:e.target.value==='true'})}>
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
           </label>
-          <div className="modal-actions">
-            <button className="btn primary">Create Vendor</button>
-            <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Cancel</button>
+          <div className="modal-footer" style={{ gridColumn: '1 / -1' }}>
+            <button type="button" className="btn btn-outline" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="btn btn-primary">Create Vendor</button>
           </div>
-          {error && <div className="error">{error}</div>}
+          {error && <div className="error-banner" style={{gridColumn: '1 / -1'}}>{error}</div>}
         </form>
       </Modal>
+
       {edit && (
-        <form className="form-grid" onSubmit={updateVendor} style={{marginTop:12}}>
-          <label><span>Name</span><input value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})} style={{borderColor: editErrors.name ? '#dc2626' : ''}} required />{editErrors.name && <span className="field-error">{editErrors.name}</span>}</label>
-          <label><span>Contact Name</span><input value={edit.contactName} onChange={e=>setEdit({...edit,contactName:e.target.value})} style={{borderColor: editErrors.contactName ? '#dc2626' : ''}} required />{editErrors.contactName && <span className="field-error">{editErrors.contactName}</span>}</label>
-          <label><span>Email</span><input type="email" value={edit.email} onChange={e=>setEdit({...edit,email:e.target.value})} style={{borderColor: editErrors.email ? '#dc2626' : ''}} required />{editErrors.email && <span className="field-error">{editErrors.email}</span>}</label>
-          <label><span>Phone</span><input value={edit.phone} onChange={e=>setEdit({...edit,phone:e.target.value})} style={{borderColor: editErrors.phone ? '#dc2626' : ''}} required />{editErrors.phone && <span className="field-error">{editErrors.phone}</span>}</label>
-          <label><span>Address</span><input value={edit.address} onChange={e=>setEdit({...edit,address:e.target.value})} style={{borderColor: editErrors.address ? '#dc2626' : ''}} required />{editErrors.address && <span className="field-error">{editErrors.address}</span>}</label>
-          <label><span>GST Number</span><input value={edit.gstNumber} onChange={e=>setEdit({...edit,gstNumber:e.target.value})} style={{borderColor: editErrors.gstNumber ? '#dc2626' : ''}} required />{editErrors.gstNumber && <span className="field-error">{editErrors.gstNumber}</span>}</label>
-          <label><span>Location</span><input value={edit.location} onChange={e=>setEdit({...edit,location:e.target.value})} style={{borderColor: editErrors.location ? '#dc2626' : ''}} required />{editErrors.location && <span className="field-error">{editErrors.location}</span>}</label>
-          <label><span>Category</span><input value={edit.category} onChange={e=>setEdit({...edit,category:e.target.value})} style={{borderColor: editErrors.category ? '#dc2626' : ''}} required />{editErrors.category && <span className="field-error">{editErrors.category}</span>}</label>
-          <label><span>Rating</span><input type="number" min="1" max="5" step="0.1" value={edit.rating} onChange={e=>setEdit({...edit,rating:e.target.value})} style={{borderColor: editErrors.rating ? '#dc2626' : ''}} required />{editErrors.rating && <span className="field-error">{editErrors.rating}</span>}</label>
-          <label><span>Compliant</span>
-            <select value={edit.compliant ? 'true':'false'} onChange={e=>setEdit({...edit,compliant:e.target.value==='true'})}>
-              <option value="true">Yes</option>
-              <option value="false">No</option>
-            </select>
-          </label>
-          <label><span>Active</span>
-            <select value={edit.isActive ? 'true':'false'} onChange={e=>setEdit({...edit,isActive:e.target.value==='true'})}>
-              <option value="true">Active</option>
-              <option value="false">Inactive</option>
-            </select>
-          </label>
-          <button className="btn primary">Update Vendor</button>
-          <button type="button" className="btn outline" onClick={() => setEdit(null)}>Cancel</button>
-          {editError && <div className="error" style={{gridColumn: '1 / -1'}}>{editError}</div>}
-        </form>
+        <Modal open={!!edit} title="Edit Vendor" onClose={() => setEdit(null)}>
+          <form className="form-grid" onSubmit={updateVendor}>
+            <label className="form-label"><span>Name</span><input className="form-input" value={edit.name} onChange={e=>setEdit({...edit,name:e.target.value})} style={{borderColor: editErrors.name ? 'var(--danger)' : ''}} required />{editErrors.name && <span className="field-error">{editErrors.name}</span>}</label>
+            <label className="form-label"><span>Contact Name</span><input className="form-input" value={edit.contactName} onChange={e=>setEdit({...edit,contactName:e.target.value})} style={{borderColor: editErrors.contactName ? 'var(--danger)' : ''}} required />{editErrors.contactName && <span className="field-error">{editErrors.contactName}</span>}</label>
+            <label className="form-label"><span>Email</span><input className="form-input" type="email" value={edit.email} onChange={e=>setEdit({...edit,email:e.target.value})} style={{borderColor: editErrors.email ? 'var(--danger)' : ''}} required />{editErrors.email && <span className="field-error">{editErrors.email}</span>}</label>
+            <label className="form-label"><span>Phone</span><input className="form-input" value={edit.phone} onChange={e=>setEdit({...edit,phone:e.target.value})} style={{borderColor: editErrors.phone ? 'var(--danger)' : ''}} required />{editErrors.phone && <span className="field-error">{editErrors.phone}</span>}</label>
+            <label className="form-label"><span>Address</span><input className="form-input" value={edit.address} onChange={e=>setEdit({...edit,address:e.target.value})} style={{borderColor: editErrors.address ? 'var(--danger)' : ''}} required />{editErrors.address && <span className="field-error">{editErrors.address}</span>}</label>
+            <label className="form-label"><span>GST Number</span><input className="form-input" value={edit.gstNumber} onChange={e=>setEdit({...edit,gstNumber:e.target.value})} style={{borderColor: editErrors.gstNumber ? 'var(--danger)' : ''}} required />{editErrors.gstNumber && <span className="field-error">{editErrors.gstNumber}</span>}</label>
+            <label className="form-label"><span>Location</span><input className="form-input" value={edit.location} onChange={e=>setEdit({...edit,location:e.target.value})} style={{borderColor: editErrors.location ? 'var(--danger)' : ''}} required />{editErrors.location && <span className="field-error">{editErrors.location}</span>}</label>
+            <label className="form-label"><span>Category</span><input className="form-input" value={edit.category} onChange={e=>setEdit({...edit,category:e.target.value})} style={{borderColor: editErrors.category ? 'var(--danger)' : ''}} required />{editErrors.category && <span className="field-error">{editErrors.category}</span>}</label>
+            <label className="form-label"><span>Rating</span><input className="form-input" type="number" min="1" max="5" step="0.1" value={edit.rating} onChange={e=>setEdit({...edit,rating:e.target.value})} style={{borderColor: editErrors.rating ? 'var(--danger)' : ''}} required />{editErrors.rating && <span className="field-error">{editErrors.rating}</span>}</label>
+            <label className="form-label"><span>Compliant</span>
+              <select className="form-select" value={edit.compliant ? 'true':'false'} onChange={e=>setEdit({...edit,compliant:e.target.value==='true'})}>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label className="form-label"><span>Active</span>
+              <select className="form-select" value={edit.isActive ? 'true':'false'} onChange={e=>setEdit({...edit,isActive:e.target.value==='true'})}>
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+              </select>
+            </label>
+            <div className="modal-footer" style={{ gridColumn: '1 / -1' }}>
+              <button type="button" className="btn btn-outline" onClick={() => setEdit(null)}>Cancel</button>
+              <button className="btn btn-primary">Update Vendor</button>
+            </div>
+            {editError && <div className="error-banner" style={{gridColumn: '1 / -1'}}>{editError}</div>}
+          </form>
+        </Modal>
       )}
     </div>
   )
 }
+
 

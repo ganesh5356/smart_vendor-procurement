@@ -1,21 +1,14 @@
 package com.example.svmps.controller;
 
 import java.util.List;
+import java.security.Principal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.example.svmps.dto.VendorDto;
 import com.example.svmps.service.VendorService;
@@ -32,8 +25,9 @@ public class VendorController {
         this.vendorService = vendorService;
     }
 
-    // CREATE VENDOR
+    // CREATE VENDOR → ADMIN, PROCUREMENT
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT')")
     public ResponseEntity<VendorDto> createVendor(
             @Valid @RequestBody VendorDto dto) {
 
@@ -41,20 +35,23 @@ public class VendorController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // GET ALL VENDORS
+    // GET ALL VENDORS → ADMIN, PROCUREMENT, FINANCE
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
     public List<VendorDto> getAllVendors() {
         return vendorService.getAllVendors();
     }
 
-    // GET VENDOR BY ID
+    // GET VENDOR BY ID → ADMIN, PROCUREMENT, FINANCE, VENDOR
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE','VENDOR')")
     public VendorDto getVendorById(@PathVariable Long id) {
         return vendorService.getVendorById(id);
     }
 
-    // UPDATE VENDOR
+    // UPDATE VENDOR → ADMIN, PROCUREMENT, VENDOR (own profile)
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','VENDOR')")
     public VendorDto updateVendor(
             @PathVariable Long id,
             @Valid @RequestBody VendorDto dto) {
@@ -62,22 +59,25 @@ public class VendorController {
         return vendorService.updateVendor(id, dto);
     }
 
-    // DELETE (SOFT DELETE)
+    // SOFT DELETE → ADMIN, PROCUREMENT, FINANCE
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteVendor(@PathVariable Long id) {
-        vendorService.deleteVendor(id);
-        return ResponseEntity.ok("Vendor with id " + id + " has been soft deleted.");
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
+    public ResponseEntity<String> softDeleteVendor(@PathVariable Long id) {
+        vendorService.softDeleteVendor(id);
+        return ResponseEntity.ok("Vendor soft deleted successfully");
     }
 
-    // HARD DELETE (PERMANENT)
+    // HARD DELETE → ADMIN ONLY
     @DeleteMapping("/{id}/hard")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> hardDeleteVendor(@PathVariable Long id) {
         vendorService.hardDeleteVendor(id);
-        return ResponseEntity.ok("Vendor with id " + id + " has been permanently deleted.");
+        return ResponseEntity.ok("Vendor permanently deleted");
     }
 
-    //  SEARCH VENDORS 
+    // SEARCH → ADMIN, PROCUREMENT, FINANCE
     @GetMapping("/search")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
     public Page<VendorDto> searchVendors(
             @RequestParam(required = false) Double rating,
             @RequestParam(required = false) String location,
@@ -87,5 +87,12 @@ public class VendorController {
 
         return vendorService.searchVendors(
                 rating, location, category, compliant, pageable);
+    }
+
+    // 🔥 NEW: MAPPING USERNAME TO VENDOR ID
+    @GetMapping("/me/id")
+    @PreAuthorize("hasRole('VENDOR')")
+    public ResponseEntity<Long> getMyVendorId(Principal principal) {
+        return ResponseEntity.ok(vendorService.getVendorIdByUsername(principal.getName()));
     }
 }

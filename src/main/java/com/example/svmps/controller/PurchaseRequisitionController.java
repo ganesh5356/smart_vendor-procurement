@@ -1,8 +1,15 @@
 package com.example.svmps.controller;
-
 import java.util.List;
 
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.svmps.dto.PurchaseRequisitionDto;
 import com.example.svmps.entity.ApprovalHistory;
@@ -25,29 +32,33 @@ public class PurchaseRequisitionController {
         this.historyRepository = historyRepository;
     }
 
-    // CREATE PR
+    // CREATE PR → ADMIN, PROCUREMENT
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT')")
     public PurchaseRequisitionDto createPr(
             @Valid @RequestBody PurchaseRequisitionDto dto) {
         return prService.createPr(dto);
     }
 
-    // UPDATE PR (ONLY DRAFT)
+    // UPDATE PR (DRAFT) → ADMIN, PROCUREMENT
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT')")
     public PurchaseRequisitionDto updatePr(
             @PathVariable Long id,
             @Valid @RequestBody PurchaseRequisitionDto dto) {
         return prService.updatePr(id, dto);
     }
 
-    // SUBMIT
+    // SUBMIT PR → ADMIN, PROCUREMENT
     @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT')")
     public PurchaseRequisitionDto submit(@PathVariable Long id) {
         return prService.submitPr(id);
     }
 
-    // APPROVE
+    // APPROVE PR → FINANCE and ADMIN ONLY
     @PostMapping("/{id}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN','FINANCE')")
     public PurchaseRequisitionDto approve(
             @PathVariable Long id,
             @RequestParam String comments,
@@ -55,8 +66,9 @@ public class PurchaseRequisitionController {
         return prService.approvePr(id, comments, approverId);
     }
 
-    // REJECT
+    // REJECT PR → Admin ONLY
     @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
     public PurchaseRequisitionDto reject(
             @PathVariable Long id,
             @RequestParam String comments,
@@ -64,25 +76,29 @@ public class PurchaseRequisitionController {
         return prService.rejectPr(id, comments, approverId);
     }
 
-    // APPROVAL HISTORY BY PR
+    // APPROVAL HISTORY → ADMIN, PROCUREMENT, FINANCE
     @GetMapping("/{id}/history")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
     public List<ApprovalHistory> history(@PathVariable Long id) {
         return historyRepository.findByPrId(id);
     }
+
     @GetMapping("/approval-history/all")
-        public List<ApprovalHistory> getAllApprovalHistory() {
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
+    public List<ApprovalHistory> getAllApprovalHistory() {
         return historyRepository.findAll();
     }
 
-
-    // GET PR BY ID
+    // GET PR BY ID → ADMIN, PROCUREMENT, FINANCE
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
     public PurchaseRequisitionDto fetchPrById(@PathVariable Long id) {
         return prService.getPrById(id);
     }
 
-    // GET ALL PRs
+    // GET ALL PRs → ADMIN, PROCUREMENT, FINANCE
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT','FINANCE')")
     public List<PurchaseRequisitionDto> fetchAllPrs() {
         return prService.getAllPrs();
     }

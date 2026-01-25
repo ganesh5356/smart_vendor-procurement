@@ -39,6 +39,11 @@ public class RegisterRequest {
         String
     > roles;
 
+    // 🔥 VENDOR-SPECIFIC FIELDS (optional, only used if VENDOR role is selected)
+    private String phone;
+    private String location;
+    private String category;
+
     public RegisterRequest() {}
 
     // ===== Getters & Setters =====
@@ -75,5 +80,29 @@ public class RegisterRequest {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 }

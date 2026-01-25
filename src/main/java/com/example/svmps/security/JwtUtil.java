@@ -16,14 +16,14 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil {
 
-    //  Secret key
+    // Secret key (must be long for HS256)
     private static final String SECRET_KEY =
             "svmps_super_secret_key_which_must_be_very_long_123456789";
 
-    //  Token validity: 1 hour
+    // Token validity: 1 hour
     private static final long EXPIRATION_TIME_MS = 1000 * 60 * 60;
 
-    //  Generate JWT token
+    // ---------------- TOKEN GENERATION ----------------
     public String generateToken(String username, Iterable<Role> roles) {
 
         List<String> roleNames = ((java.util.Collection<Role>) roles)
@@ -43,19 +43,26 @@ public class JwtUtil {
                 .compact();
     }
 
-    //  Extract username
+    // ---------------- EXTRACT USERNAME ----------------
     public String extractUsername(String token) {
         return extractAllClaims(token).getSubject();
     }
 
-    //  Check token expiration
+    // ---------------- EXTRACT ROLES (🔥 REQUIRED) ----------------
+    @SuppressWarnings("unchecked")
+    public List<String> extractRoles(String token) {
+        Claims claims = extractAllClaims(token);
+        return claims.get("roles", List.class);
+    }
+
+    // ---------------- TOKEN EXPIRATION ----------------
     public boolean isTokenExpired(String token) {
         return extractAllClaims(token)
                 .getExpiration()
                 .before(new Date());
     }
 
-    //  Internal helper
+    // ---------------- INTERNAL ----------------
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(Keys.hmacShaKeyFor(SECRET_KEY.getBytes()))
@@ -64,7 +71,7 @@ public class JwtUtil {
                 .getBody();
     }
 
-    //  ADD THIS METHOD (THIS FIXES YOUR ERROR)
+    // Optional helper
     public long getExpirationTimeMs() {
         return EXPIRATION_TIME_MS;
     }

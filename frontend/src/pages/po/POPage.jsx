@@ -5,18 +5,14 @@ import { extractErrorMessage } from '../../utils/errorHandler.js'
 import Modal from '../../components/Modal.jsx'
 
 export default function POPage({ filter = 'all', onFilterChange }) {
-  const { token } = useAuth()
+  const { token, hasRole } = useAuth()
   const client = createClient(() => token)
   const [pos, setPos] = useState([])
   const [createData, setCreateData] = useState({ prId: '', cgstPercent: 9, sgstPercent: 9, igstPercent: 0 })
   const [createErrors, setCreateErrors] = useState({})
   const [createError, setCreateError] = useState('')
-  const [deliverData, setDeliverData] = useState({ poId: '', quantity: 1 })
-  const [deliverErrors, setDeliverErrors] = useState({})
-  const [deliverError, setDeliverError] = useState('')
   const [closeError, setCloseError] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const [showDeliver, setShowDeliver] = useState(false)
 
   const filteredPos = filter === 'gst' ? pos.filter(p => 
     p.cgstAmount && p.cgstAmount > 0 && 
@@ -38,14 +34,6 @@ export default function POPage({ filter = 'all', onFilterChange }) {
     return errors
   }
 
-  function validateDeliver(data) {
-    const errors = {}
-    if (!data.poId) errors.poId = 'PO ID is required'
-    if (isNaN(Number(data.poId))) errors.poId = 'PO ID must be a number'
-    if (Number(data.quantity) < 1) errors.quantity = 'Quantity must be at least 1'
-    return errors
-  }
-
   function validateClosePO(po) {
     const errors = {}
     if (po.status !== 'DELIVERED') {
@@ -59,14 +47,13 @@ export default function POPage({ filter = 'all', onFilterChange }) {
     setPos(res)
     setCloseError('')
   }
+
   useEffect(() => { 
     load()
     return () => {
       setCreateError('')
-      setDeliverError('')
       setCloseError('')
       setCreateErrors({})
-      setDeliverErrors({})
     }
   }, [])
 
@@ -89,25 +76,7 @@ export default function POPage({ filter = 'all', onFilterChange }) {
       setCreateError(`❌ ${errorMsg}`)
     }
   }
-  async function deliver(e) {
-    e.preventDefault()
-    const errors = validateDeliver(deliverData)
-    if (Object.keys(errors).length > 0) {
-      setDeliverErrors(errors)
-      return
-    }
-    setDeliverErrors({})
-    setDeliverError('')
-    try {
-      await client.post(`/api/po/${Number(deliverData.poId)}/deliver?quantity=${Number(deliverData.quantity)}`, {})
-      setDeliverData({ poId:'', quantity:1 })
-      setShowDeliver(false)
-      await load()
-    } catch (err) {
-      const errorMsg = extractErrorMessage(err)
-      setDeliverError(`❌ ${errorMsg}`)
-    }
-  }
+
   async function close(poId) {
     const po = pos.find(p => p.id === poId)
     const errors = validateClosePO(po)
@@ -126,41 +95,64 @@ export default function POPage({ filter = 'all', onFilterChange }) {
   }
 
   return (
-    <div className="panel">
-      <div className="panel-header">
-        <h3>Purchase Orders {filter === 'gst' && '(With All GST)'}</h3>
-        <div style={{display:'flex',gap:8}}>
-          <button className="btn" onClick={() => setShowCreate(true)}>Create PO</button>
-          <button className="btn outline" onClick={() => setShowDeliver(true)}>Deliver</button>
+    <div className="po-container">
+      <header className="page-header">
+        <h1 className="page-title">Purchase Orders {filter === 'gst' && '(With GST)'}</h1>
+        <div style={{display:'flex',gap:12}}>
+          {(hasRole('PROCUREMENT') || hasRole('ADMIN')) && (
+            <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ Create PO</button>
+          )}
+        </div>
+      </header>
+
+      {closeError && <div className="error-banner">❌ {closeError}</div>}
+
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">All Orders</h2>
+        </div>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Number</th>
+                <th>Status</th>
+                <th>Base Amt</th>
+                <th>Total GST</th>
+                <th>Grand Total</th>
+                <th>Delivered</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPos.map(po => (
+                <tr key={po.id}>
+                  <td>{po.id}</td>
+                  <td><div style={{ fontWeight: 600 }}>{po.poNumber}</div></td>
+                  <td>
+                    <span className={`badge ${
+                      po.status === 'CLOSED' ? 'badge-success' : 
+                      po.status === 'DELIVERED' ? 'badge-info' : 'badge-warning'
+                    }`}>
+                      {po.status}
+                    </span>
+                  </td>
+                  <td>{po.baseAmount?.toFixed(2)}</td>
+                  <td>{po.totalGstAmount?.toFixed(2)}</td>
+                  <td><div style={{ fontWeight: 700 }}>{po.totalAmount?.toFixed(2)}</div></td>
+                  <td>{po.deliveredQuantity}</td>
+                  <td>
+                    {(hasRole('ADMIN') || hasRole('PROCUREMENT')) && (
+                      <button className="btn btn-outline btn-small" onClick={() => close(po.id)}>Close</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr><th>ID</th><th>Number</th><th>Status</th><th>Base Amount</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total GST</th><th>Total</th><th>Delivered</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            {filteredPos.map(po => (
-              <tr key={po.id}>
-                <td>{po.id}</td>
-                <td>{po.poNumber}</td>
-                <td>{po.status}</td>
-                <td>{po.baseAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.cgstAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.sgstAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.igstAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.totalGstAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.totalAmount?.toFixed(2) || '0.00'}</td>
-                <td>{po.deliveredQuantity}</td>
-                <td>
-                  <button className="btn small" onClick={() => close(po.id)}>Close</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {closeError && <div className="error" style={{marginTop:12}}>{closeError}</div>}
 
       <Modal open={showCreate} title="Create Purchase Order" onClose={() => {
         setShowCreate(false)
@@ -168,33 +160,19 @@ export default function POPage({ filter = 'all', onFilterChange }) {
         setCreateErrors({})
       }}>
         <form className="form-grid" onSubmit={createPo}>
-          <label><span>PR ID</span><input value={createData.prId} onChange={e=>setCreateData({...createData,prId:e.target.value})} style={{borderColor: createErrors.prId ? '#dc2626' : ''}} required />{createErrors.prId && <span className="field-error">{createErrors.prId}</span>}</label>
-          <label><span>CGST %</span><input type="number" min="0" max="100" step="0.01" value={createData.cgstPercent} onChange={e=>setCreateData({...createData,cgstPercent:e.target.value})} style={{borderColor: createErrors.cgstPercent ? '#dc2626' : ''}} required />{createErrors.cgstPercent && <span className="field-error">{createErrors.cgstPercent}</span>}</label>
-          <label><span>SGST %</span><input type="number" min="0" max="100" step="0.01" value={createData.sgstPercent} onChange={e=>setCreateData({...createData,sgstPercent:e.target.value})} style={{borderColor: createErrors.sgstPercent ? '#dc2626' : ''}} required />{createErrors.sgstPercent && <span className="field-error">{createErrors.sgstPercent}</span>}</label>
-          <label><span>IGST %</span><input type="number" min="0" max="100" step="0.01" value={createData.igstPercent} onChange={e=>setCreateData({...createData,igstPercent:e.target.value})} style={{borderColor: createErrors.igstPercent ? '#dc2626' : ''}} required />{createErrors.igstPercent && <span className="field-error">{createErrors.igstPercent}</span>}</label>
-          <div className="modal-actions">
-            <button className="btn primary">Create PO</button>
-            <button type="button" className="btn outline" onClick={() => setShowCreate(false)}>Cancel</button>
+          <label className="form-label"><span>PR ID</span><input className="form-input" value={createData.prId} onChange={e=>setCreateData({...createData,prId:e.target.value})} style={{borderColor: createErrors.prId ? 'var(--danger)' : ''}} required />{createErrors.prId && <span className="field-error">{createErrors.prId}</span>}</label>
+          <label className="form-label"><span>CGST %</span><input className="form-input" type="number" min="0" max="100" step="0.01" value={createData.cgstPercent} onChange={e=>setCreateData({...createData,cgstPercent:e.target.value})} style={{borderColor: createErrors.cgstPercent ? 'var(--danger)' : ''}} required />{createErrors.cgstPercent && <span className="field-error">{createErrors.cgstPercent}</span>}</label>
+          <label className="form-label"><span>SGST %</span><input className="form-input" type="number" min="0" max="100" step="0.01" value={createData.sgstPercent} onChange={e=>setCreateData({...createData,sgstPercent:e.target.value})} style={{borderColor: createErrors.sgstPercent ? 'var(--danger)' : ''}} required />{createErrors.sgstPercent && <span className="field-error">{createErrors.sgstPercent}</span>}</label>
+          <label className="form-label"><span>IGST %</span><input className="form-input" type="number" min="0" max="100" step="0.01" value={createData.igstPercent} onChange={e=>setCreateData({...createData,igstPercent:e.target.value})} style={{borderColor: createErrors.igstPercent ? 'var(--danger)' : ''}} required />{createErrors.igstPercent && <span className="field-error">{createErrors.igstPercent}</span>}</label>
+          <div className="modal-footer" style={{ gridColumn: '1 / -1' }}>
+            <button type="button" className="btn btn-outline" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="btn btn-primary">Create PO</button>
           </div>
-          {createError && <div className="error">{createError}</div>}
+          {createError && <div className="error-banner" style={{gridColumn: '1 / -1'}}>{createError}</div>}
         </form>
       </Modal>
 
-      <Modal open={showDeliver} title="Deliver Purchase Order" onClose={() => {
-        setShowDeliver(false)
-        setDeliverError('')
-        setDeliverErrors({})
-      }}>
-        <form className="form-grid" onSubmit={deliver}>
-          <label><span>PO ID</span><input value={deliverData.poId} onChange={e=>setDeliverData({...deliverData,poId:e.target.value})} style={{borderColor: deliverErrors.poId ? '#dc2626' : ''}} required />{deliverErrors.poId && <span className="field-error">{deliverErrors.poId}</span>}</label>
-          <label><span>Quantity</span><input type="number" min="1" value={deliverData.quantity} onChange={e=>setDeliverData({...deliverData,quantity:e.target.value})} style={{borderColor: deliverErrors.quantity ? '#dc2626' : ''}} required />{deliverErrors.quantity && <span className="field-error">{deliverErrors.quantity}</span>}</label>
-          <div className="modal-actions">
-            <button className="btn primary">Deliver</button>
-            <button type="button" className="btn outline" onClick={() => setShowDeliver(false)}>Cancel</button>
-          </div>
-          {deliverError && <div className="error">{deliverError}</div>}
-        </form>
-      </Modal>
     </div>
   )
 }
+
