@@ -22,6 +22,7 @@ import com.example.svmps.entity.User;
 import com.example.svmps.entity.Role;
 import java.util.HashSet;
 import java.util.Set;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class VendorService {
@@ -93,10 +94,10 @@ public class VendorService {
         return toDto(vendorRepository.save(v));
     }
 
-    // ================= READ ALL (ACTIVE ONLY) =================
+    // ================= READ ALL =================
     public List<VendorDto> getAllVendors() {
 
-        return vendorRepository.findByIsActiveTrue()
+        return vendorRepository.findAll()
                 .stream()
                 .map(this::toDto)
                 .collect(Collectors.toList());
@@ -156,23 +157,43 @@ public class VendorService {
     // ================= HARD DELETE (ADMIN ONLY) =================
     @Transactional
     public void hardDeleteVendor(Long id) {
-
         Vendor v = vendorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
-        List<PurchaseRequisition> prs = purchaseRequisitionRepository.findByVendorId(id);
+        User linkedUser = v.getUser();
 
+        // 1. Clean up dependencies and delete vendor
+        deleteVendorOnly(id);
+
+        // 2. 🔥 ALSO DELETE THE LINKED USER
+        if (linkedUser != null) {
+            userRepository.delete(linkedUser);
+        }
+    }
+
+    /**
+     * 🔥 NEW: Deletes the vendor record and all its dependencies (PRs, POs),
+     * but DOES NOT delete the linked User account.
+     * Useful when a User's role is changed from VENDOR to something else.
+     */
+    @Transactional
+    public void deleteVendorOnly(Long vendorId) {
+        Vendor v = vendorRepository.findById(vendorId)
+                .orElseThrow(() -> new RuntimeException("Vendor not found: " + vendorId));
+
+        // 1. Find and Delete associated Purchase Requisitions and their Purchase Orders
+        List<PurchaseRequisition> prs = purchaseRequisitionRepository.findByVendorId(vendorId);
         for (PurchaseRequisition pr : prs) {
             List<PurchaseOrder> pos = purchaseOrderRepository.findByPrId(pr.getId());
             if (!pos.isEmpty()) {
                 purchaseOrderRepository.deleteAll(pos);
             }
         }
-
         if (!prs.isEmpty()) {
             purchaseRequisitionRepository.deleteAll(prs);
         }
 
+        // 2. Delete the vendor record itself
         vendorRepository.delete(v);
     }
 
@@ -213,14 +234,14 @@ public class VendorService {
     // ================= SEARCH =================
     public Page<VendorDto> searchVendors(
             Double rating, String location, String category,
-            Boolean compliant, Pageable pageable) {
+            Boolean compliant, Boolean isActive, Pageable pageable) {
 
-        var spec = com.example.svmps.specification.VendorSpecification
-                .hasRating(rating)
+        Specification<Vendor> spec = Specification
+                .where(com.example.svmps.specification.VendorSpecification.hasRating(rating))
                 .and(com.example.svmps.specification.VendorSpecification.hasLocation(location))
                 .and(com.example.svmps.specification.VendorSpecification.hasCategory(category))
                 .and(com.example.svmps.specification.VendorSpecification.isCompliant(compliant))
-                .and(com.example.svmps.specification.VendorSpecification.isActive(true));
+                .and(com.example.svmps.specification.VendorSpecification.isActive(isActive));
 
         return vendorRepository.findAll(spec, pageable)
                 .map(this::toDto);

@@ -83,10 +83,11 @@ public class VendorController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String category,
             @RequestParam(required = false) Boolean compliant,
+            @RequestParam(required = false) Boolean isActive,
             Pageable pageable) {
 
         return vendorService.searchVendors(
-                rating, location, category, compliant, pageable);
+                rating, location, category, compliant, isActive, pageable);
     }
 
     // 🔥 NEW: MAPPING USERNAME TO VENDOR ID

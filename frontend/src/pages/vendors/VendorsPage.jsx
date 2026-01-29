@@ -417,21 +417,38 @@ export default function VendorsPage() {
       {edit && (
         <Modal open={!!edit} title="Edit Vendor" onClose={() => setEdit(null)}>
           <form className="form-grid" onSubmit={updateVendor}>
-            <label className="form-label" style={{ gridColumn: '1 / -1' }}>
-              <span>Link to User (Vendor Account)</span>
-              <select
-                className="form-select"
-                value={edit.userId || ''}
-                onChange={e => setEdit({ ...edit, userId: e.target.value })}
-                style={{ borderColor: editErrors.userId ? 'var(--danger)' : '' }}
-                required
-              >
-                <option value="">-- Select a User --</option>
-                {availableUsers.map(u => (
-                  <option key={u.id} value={u.id}>{u.username} ({u.email})</option>
-                ))}
-              </select>
-              {editErrors.userId && <span className="field-error">{editErrors.userId}</span>}
+            <label className="form-label">
+              <span>Vendor Name</span>
+              <input 
+                className="form-input" 
+                value={edit.name || ''} 
+                onChange={e => setEdit({ ...edit, name: e.target.value })} 
+                disabled={!!edit.userId}
+                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              />
+              {edit.userId && <small style={{ color: 'var(--text-muted)' }}>Managed via linked account</small>}
+            </label>
+
+            <label className="form-label">
+              <span>Contact Name</span>
+              <input 
+                className="form-input" 
+                value={edit.contactName || ''} 
+                onChange={e => setEdit({ ...edit, contactName: e.target.value })} 
+                disabled={!!edit.userId}
+                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              />
+            </label>
+
+            <label className="form-label">
+              <span>Email</span>
+              <input 
+                className="form-input" 
+                value={edit.email || ''} 
+                onChange={e => setEdit({ ...edit, email: e.target.value })} 
+                disabled={!!edit.userId}
+                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              />
             </label>
 
             <label className="form-label"><span>Phone</span><input className="form-input" value={edit.phone} onChange={e => setEdit({ ...edit, phone: e.target.value })} style={{ borderColor: editErrors.phone ? 'var(--danger)' : '' }} required />{editErrors.phone && <span className="field-error">{editErrors.phone}</span>}</label>

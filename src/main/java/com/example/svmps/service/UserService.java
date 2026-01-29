@@ -25,13 +25,15 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final VendorRepository vendorRepository;
+    private final VendorService vendorService; // 🔥 NEW dependency
     private final BCryptPasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, VendorRepository vendorRepository,
-            BCryptPasswordEncoder passwordEncoder) {
+            VendorService vendorService, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.vendorRepository = vendorRepository;
+        this.vendorService = vendorService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -110,10 +112,9 @@ public class UserService {
                     vendorRepository.save(v);
                 }
             } else if (!hasVendorRoleNow && hadVendorRoleBefore) {
-                // 🔥 Role removed: Deactivate vendor profile
+                // 🔥 Role removed: Delete vendor profile and all dependencies
                 vendorRepository.findByUserId(u.getId()).ifPresent(v -> {
-                    v.setIsActive(false);
-                    vendorRepository.save(v);
+                    vendorService.deleteVendorOnly(v.getId());
                 });
             }
         }
@@ -124,6 +125,12 @@ public class UserService {
 
     public void deleteUser(Long id) {
         User u = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 🔥 Cleanup associated Vendor profile if it exists
+        vendorRepository.findByUserId(u.getId()).ifPresent(v -> {
+            vendorService.deleteVendorOnly(v.getId());
+        });
+
         userRepository.delete(u);
     }
 

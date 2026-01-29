@@ -51,7 +51,6 @@ public class EmailService {
         repo.save(log);
     }
 
-
     public void sendWithMultipleAttachments(
             String to,
             String subject,
@@ -60,8 +59,7 @@ public class EmailService {
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper =
-                    new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
             helper.setTo(to);
             helper.setSubject(subject);
@@ -70,8 +68,7 @@ public class EmailService {
             for (Map.Entry<String, byte[]> entry : attachments.entrySet()) {
                 helper.addAttachment(
                         entry.getKey(),
-                        new ByteArrayResource(entry.getValue())
-                );
+                        new ByteArrayResource(entry.getValue()));
             }
 
             mailSender.send(message);

@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/spvms
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # IMPORTANT: These must be indented with 2 spaces to be under 'spring'
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: saxena.juhee8@gmail.com
+    password: "aniy gusc verd msku"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Root-level properties (0 indentation)
+app:
+  reports:
+    email: juheesaxena57@gmail.com
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+server:
+  port: 8082
