@@ -1,10 +1,9 @@
 package com.example.svmps.service;
 
-
-
 import com.example.svmps.entity.ReportLog;
 import com.example.svmps.entity.ReportStatus;
 import com.example.svmps.repository.ReportLogRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -23,18 +22,17 @@ public class ReportRetryScheduler {
         this.service = service;
     }
 
-    @Scheduled(fixedDelay = 600000)
+    @Scheduled(fixedDelay = 120000)
     public void retryFailedReports() {
 
-        List<ReportLog> failed =
-                repo.findByStatusAndRetryCountLessThan(
-                        ReportStatus.FAILED, 3
-                );
+        List<ReportLog> failed = repo.findByStatusAndRetryCountLessThanOrderByGeneratedAtDesc(
+                ReportStatus.FAILED, 3, PageRequest.of(0, 3));
 
         for (ReportLog log : failed) {
             log.setRetryCount(log.getRetryCount() + 1);
+            log.setStatus(ReportStatus.PENDING);
             repo.save(log);
-            service.generateAndSend(log.getReportType());
+            service.retryReport(log);
         }
     }
 }

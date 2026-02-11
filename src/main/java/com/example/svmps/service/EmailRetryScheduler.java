@@ -3,6 +3,7 @@ package com.example.svmps.service;
 import com.example.svmps.entity.EmailLog;
 import com.example.svmps.entity.EmailStatus;
 import com.example.svmps.repository.EmailLogRepository;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,7 +16,7 @@ public class EmailRetryScheduler {
     private final EmailService emailService;
 
     public EmailRetryScheduler(EmailLogRepository repo,
-                               EmailService emailService) {
+            EmailService emailService) {
         this.repo = repo;
         this.emailService = emailService;
     }
@@ -23,20 +24,14 @@ public class EmailRetryScheduler {
     @Scheduled(fixedDelay = 300000)
     public void retryFailedEmails() {
 
-        List<EmailLog> failed =
-                repo.findByStatusAndRetryCountLessThan(
-                        EmailStatus.FAILED, 3
-                );
+        List<EmailLog> failed = repo.findByStatusAndRetryCountLessThan(
+                EmailStatus.FAILED, 3, PageRequest.of(0, 50));
 
         for (EmailLog log : failed) {
-            emailService.send(
-                    log.getRecipient(),
-                    log.getSubject(),
-                    log.getBody()
-            );
             log.setRetryCount(log.getRetryCount() + 1);
+            log.setStatus(EmailStatus.PENDING); // Mark as pending while trying
             repo.save(log);
+            emailService.retry(log);
         }
     }
 }
-

@@ -62,7 +62,6 @@ public class PurchaseRequisitionService {
 
         if (requesterEmail != null) {
             emailService.send(
-                    requesterEmail, // From
                     requesterEmail, // To
                     "PR Submitted: " + savedPr.getPrNumber(),
                     templateService.prSubmitted(savedPr));
@@ -110,7 +109,6 @@ public class PurchaseRequisitionService {
 
         if (saved.getRequesterEmail() != null) {
             emailService.send(
-                    saved.getRequesterEmail(), // From
                     saved.getRequesterEmail(), // To
                     "PR Submitted: " + saved.getPrNumber(),
                     templateService.prSubmitted(saved));
@@ -136,7 +134,6 @@ public class PurchaseRequisitionService {
 
         if (pr.getRequesterEmail() != null) {
             emailService.send(
-                    pr.getRequesterEmail(), // From
                     pr.getRequesterEmail(), // To
                     "PR Approved: " + pr.getPrNumber(),
                     templateService.prApproved(pr));
@@ -162,7 +159,6 @@ public class PurchaseRequisitionService {
 
         if (pr.getRequesterEmail() != null) {
             emailService.send(
-                    pr.getRequesterEmail(), // From
                     pr.getRequesterEmail(), // To
                     "PR Rejected: " + pr.getPrNumber(),
                     templateService.prRejected(pr, comments));
@@ -273,7 +269,6 @@ public class PurchaseRequisitionService {
 
         // NEW: Send email immediately
         emailService.send(
-                saved.getRequesterEmail(), // From
                 saved.getRequesterEmail(), // To
                 "PR Created: " + saved.getPrNumber(),
                 templateService.prCreated(saved));

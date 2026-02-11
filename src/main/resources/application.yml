@@ -24,13 +24,20 @@ spring:
     host: smtp.gmail.com
     port: 587
     username: saxena.juhee8@gmail.com
-    password: "aniy gusc verd msku"
+    password: aniyguscverdmsku
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+          debug: true
+          ssl:
+            trust: "*"
 
 # Root-level properties (0 indentation)
 app:

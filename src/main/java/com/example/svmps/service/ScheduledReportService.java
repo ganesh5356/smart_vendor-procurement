@@ -38,25 +38,30 @@ public class ScheduledReportService {
         this.vendorService = vendorService;
     }
 
-    // 🔁 DAILY – every 1 min (testing)
-    @Scheduled(cron = "0 */1 * * * ?")
+    // 🔁 DAILY – every 2 minutes
+    @Scheduled(cron = "0 */2 * * * ?")
     public void dailyReport() {
-        generateAndSend(ReportType.DAILY);
+        processReport(null, ReportType.DAILY);
     }
 
-    // 🔁 WEEKLY – offset by 30 sec
-    @Scheduled(cron = "30 */1 * * * ?")
+    // 🔁 WEEKLY – every 5 minutes
+    @Scheduled(cron = "0 */5 * * * ?")
     public void weeklyReport() {
-        generateAndSend(ReportType.WEEKLY);
+        processReport(null, ReportType.WEEKLY);
     }
 
-    public void generateAndSend(ReportType type) {
+    public void retryReport(ReportLog log) {
+        processReport(log, log.getReportType());
+    }
 
-        ReportLog log = new ReportLog();
-        log.setReportType(type);
-        log.setStatus(ReportStatus.PENDING);
-        log.setGeneratedAt(LocalDateTime.now());
-        log.setRetryCount(0);
+    private void processReport(ReportLog log, ReportType type) {
+        if (log == null) {
+            log = new ReportLog();
+            log.setReportType(type);
+            log.setStatus(ReportStatus.PENDING);
+            log.setGeneratedAt(LocalDateTime.now());
+            log.setRetryCount(0);
+        }
         repo.save(log);
 
         try {
@@ -65,11 +70,8 @@ public class ScheduledReportService {
             List<?> vendorData = vendorService.getAllVendors();
 
             // 📄 Generate reports
-            byte[] prExcel =
-                    reportService.exportExcel("pr", prData);
-
-            byte[] vendorExcel =
-                    reportService.exportExcel("vendor", vendorData);
+            byte[] prExcel = reportService.exportExcel("pr", prData);
+            byte[] vendorExcel = reportService.exportExcel("vendor", vendorData);
 
             // 📎 Attachments
             Map<String, byte[]> attachments = new HashMap<>();
@@ -81,10 +83,10 @@ public class ScheduledReportService {
                     reportEmail,
                     type + " Procurement Reports",
                     "Attached are the PR and Vendor reports.",
-                    attachments
-            );
+                    attachments);
 
             log.setStatus(ReportStatus.SUCCESS);
+            log.setErrorMessage(null);
 
         } catch (Exception e) {
             log.setStatus(ReportStatus.FAILED);

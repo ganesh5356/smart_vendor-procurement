@@ -1,0 +1,6 @@
+﻿id	status	recipient	error_message	last_attempt
+5090	FAILED	khamitkarganeshkumar@gmail.com	Authentication failed	2026-02-11 22:03:34
+5086	FAILED	khamitkarganeshkumar@gmail.com	Authentication failed	2026-02-11 22:03:33
+5085	FAILED	kganeshkumar758@gmail.com	Authentication failed	2026-02-11 22:03:33
+5084	FAILED	khamitkarganeshkumar@gmail.com	Authentication failed	2026-02-11 22:03:33
+5083	FAILED	kganeshkumar758@gmail.com	Authentication failed	2026-02-11 22:03:33

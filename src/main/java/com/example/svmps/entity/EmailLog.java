@@ -23,28 +23,75 @@ public class EmailLog {
     private int retryCount;
     private LocalDateTime lastAttempt;
 
+    @Column(columnDefinition = "TEXT")
+    private String errorMessage;
+
     // Constructors
-    public EmailLog() {}
+    public EmailLog() {
+    }
 
     // Getters/Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getRecipient() { return recipient; }
-    public void setRecipient(String recipient) { this.recipient = recipient; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getSubject() { return subject; }
-    public void setSubject(String subject) { this.subject = subject; }
+    public String getRecipient() {
+        return recipient;
+    }
 
-    public String getBody() { return body; }
-    public void setBody(String body) { this.body = body; }
+    public void setRecipient(String recipient) {
+        this.recipient = recipient;
+    }
 
-    public EmailStatus getStatus() { return status; }
-    public void setStatus(EmailStatus status) { this.status = status; }
+    public String getSubject() {
+        return subject;
+    }
 
-    public int getRetryCount() { return retryCount; }
-    public void setRetryCount(int retryCount) { this.retryCount = retryCount; }
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
 
-    public LocalDateTime getLastAttempt() { return lastAttempt; }
-    public void setLastAttempt(LocalDateTime lastAttempt) { this.lastAttempt = lastAttempt; }
+    public String getBody() {
+        return body;
+    }
+
+    public void setBody(String body) {
+        this.body = body;
+    }
+
+    public EmailStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EmailStatus status) {
+        this.status = status;
+    }
+
+    public int getRetryCount() {
+        return retryCount;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    public LocalDateTime getLastAttempt() {
+        return lastAttempt;
+    }
+
+    public void setLastAttempt(LocalDateTime lastAttempt) {
+        this.lastAttempt = lastAttempt;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
 }

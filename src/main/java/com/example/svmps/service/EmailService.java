@@ -27,7 +27,7 @@ public class EmailService {
 
     @Async
     public void send(String to, String subject, String body) {
-        send(null, to, subject, body); // Use default 'from'
+        send(null, to, subject, body);
     }
 
     @Async
@@ -39,27 +39,51 @@ public class EmailService {
         log.setStatus(EmailStatus.PENDING);
         log.setRetryCount(0);
         log.setLastAttempt(LocalDateTime.now());
-        repo.save(log);
+        EmailLog savedLog = repo.save(log);
 
+        processEmail(savedLog, from);
+    }
+
+    @Async
+    public void retry(EmailLog log) {
+        processEmail(log, null);
+    }
+
+    private void processEmail(EmailLog log, String from) {
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-
-            if (from != null && !from.isBlank()) {
-                helper.setFrom(from);
-                helper.setReplyTo(from); // Set Reply-To as well for better compatibility
-            }
-
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-            mailSender.send(message);
+            sendEmailInternal(log, from);
             log.setStatus(EmailStatus.SUCCESS);
+            log.setErrorMessage(null);
         } catch (Exception e) {
             log.setStatus(EmailStatus.FAILED);
+            log.setErrorMessage(e.getMessage());
         }
         log.setLastAttempt(LocalDateTime.now());
         repo.save(log);
+    }
+
+    private void sendEmailInternal(EmailLog log, String from) throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        if (from != null && !from.isBlank()) {
+            helper.setFrom(from);
+            helper.setReplyTo(from);
+        }
+
+        helper.setTo(log.getRecipient());
+        helper.setSubject(log.getSubject());
+        helper.setText(log.getBody(), true);
+        mailSender.send(message);
+    }
+
+    @Async
+    public void sendWithMultipleAttachmentsAsync(
+            String to,
+            String subject,
+            String body,
+            Map<String, byte[]> attachments) {
+        sendWithMultipleAttachments(to, subject, body, attachments);
     }
 
     public void sendWithMultipleAttachments(
@@ -68,24 +92,44 @@ public class EmailService {
             String body,
             Map<String, byte[]> attachments) {
 
+        EmailLog log = new EmailLog();
+        log.setRecipient(to);
+        log.setSubject(subject);
+        log.setBody(body);
+        log.setStatus(EmailStatus.PENDING);
+        log.setRetryCount(3); // Mark as non-retryable by general scheduler
+        log.setLastAttempt(LocalDateTime.now());
+        EmailLog savedLog = repo.save(log);
+
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
-
-            helper.setTo(to);
-            helper.setSubject(subject);
-            helper.setText(body, true);
-
-            for (Map.Entry<String, byte[]> entry : attachments.entrySet()) {
-                helper.addAttachment(
-                        entry.getKey(),
-                        new ByteArrayResource(entry.getValue()));
-            }
-
-            mailSender.send(message);
-
+            sendEmailWithAttachmentsInternal(savedLog, attachments);
+            savedLog.setStatus(EmailStatus.SUCCESS);
+            savedLog.setErrorMessage(null);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to send email", e);
+            savedLog.setStatus(EmailStatus.FAILED);
+            savedLog.setErrorMessage(e.getMessage());
+            throw new RuntimeException(e);
+        } finally {
+            savedLog.setLastAttempt(LocalDateTime.now());
+            repo.save(savedLog);
         }
+    }
+
+    private void sendEmailWithAttachmentsInternal(EmailLog log, Map<String, byte[]> attachments)
+            throws MessagingException {
+        MimeMessage message = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+        helper.setTo(log.getRecipient());
+        helper.setSubject(log.getSubject());
+        helper.setText(log.getBody(), true);
+
+        for (Map.Entry<String, byte[]> entry : attachments.entrySet()) {
+            helper.addAttachment(
+                    entry.getKey(),
+                    new ByteArrayResource(entry.getValue()));
+        }
+
+        mailSender.send(message);
     }
 }
