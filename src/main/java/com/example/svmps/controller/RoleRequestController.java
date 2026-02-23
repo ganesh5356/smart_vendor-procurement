@@ -1,11 +1,10 @@
 package com.example.svmps.controller;
 
-import com.example.svmps.entity.RoleSelectionRequest;
-import com.example.svmps.entity.User;
-import com.example.svmps.repository.UserRepository;
+import com.example.svmps.entity.*;
+import com.example.svmps.repository.*;
 import com.example.svmps.service.RoleRequestService;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 @RestController
@@ -121,13 +118,15 @@ public class RoleRequestController {
         RoleSelectionRequest request = requestRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Request not found"));
 
-        Path path = Paths.get(request.getDocumentPath());
-        Resource resource = new UrlResource(path.toUri());
+        Document document = request.getDocument();
+        if (document == null) {
+            return ResponseEntity.notFound().build();
+        }
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + path.getFileName().toString() + "\"")
-                .contentType(MediaType.IMAGE_JPEG)
-                .body(resource);
+                        "attachment; filename=\"" + document.getName() + "\"")
+                .contentType(MediaType.parseMediaType(document.getContentType()))
+                .body(new ByteArrayResource(document.getData()));
     }
 }

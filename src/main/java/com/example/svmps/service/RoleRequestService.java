@@ -1,22 +1,11 @@
 package com.example.svmps.service;
 
-import com.example.svmps.entity.Role;
-import com.example.svmps.entity.RoleSelectionRequest;
-import com.example.svmps.entity.User;
-import com.example.svmps.entity.Vendor;
-import com.example.svmps.repository.RoleRepository;
-import com.example.svmps.repository.RoleSelectionRequestRepository;
-import com.example.svmps.repository.UserRepository;
-import com.example.svmps.repository.VendorRepository;
-import org.springframework.beans.factory.annotation.Value;
+import com.example.svmps.entity.*;
+import com.example.svmps.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,18 +16,18 @@ public class RoleRequestService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final VendorRepository vendorRepository;
-
-    @Value("${upload.path:uploads/documents}")
-    private String uploadPath;
+    private final DocumentRepository documentRepository;
 
     public RoleRequestService(RoleSelectionRequestRepository requestRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            VendorRepository vendorRepository) {
+            VendorRepository vendorRepository,
+            DocumentRepository documentRepository) {
         this.requestRepository = requestRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.vendorRepository = vendorRepository;
+        this.documentRepository = documentRepository;
     }
 
     public RoleSelectionRequest submitRequest(
@@ -66,18 +55,12 @@ public class RoleRequestService {
         }
 
         try {
-            // Ensure directory exists
-            Path root = Paths.get(uploadPath);
-            if (!Files.exists(root)) {
-                Files.createDirectories(root);
-                System.out.println("Created upload directory: " + root.toAbsolutePath());
-            }
-
-            // Save file
-            String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-            Path targetFile = root.resolve(filename);
-            System.out.println("Saving file to: " + targetFile.toAbsolutePath());
-            Files.copy(file.getInputStream(), targetFile, StandardCopyOption.REPLACE_EXISTING);
+            // Create and save Document
+            Document document = new Document();
+            document.setName(file.getOriginalFilename());
+            document.setContentType(file.getContentType());
+            document.setData(file.getBytes());
+            document = documentRepository.save(document);
 
             RoleSelectionRequest request = new RoleSelectionRequest();
             request.setUser(user);
@@ -96,7 +79,7 @@ public class RoleRequestService {
             }
 
             request.setAdditionalDetails(details);
-            request.setDocumentPath(targetFile.toString());
+            request.setDocument(document);
             request.setStatus(RoleSelectionRequest.RequestStatus.PENDING);
 
             System.out.println("Saving request to database...");

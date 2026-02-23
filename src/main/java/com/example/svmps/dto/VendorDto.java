@@ -11,6 +11,7 @@ public class VendorDto {
 
     private Long id;
     private Long userId;
+    private String username;
 
     // Vendor Name (Fetched from User if not provided)
     private String name;
@@ -22,18 +23,15 @@ public class VendorDto {
     private String email;
 
     // Phone Number (Indian format)
-    @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^[6-9]\\d{9}$", message = "Phone number must be a valid 10-digit Indian mobile number")
     private String phone;
 
     // Address
-    @NotBlank(message = "Address is required")
     @Size(min = 5, max = 255, message = "Address must be between 5 and 255 characters")
     private String address;
 
     // GST Number (India – simplified format)
     // Example: 29ABCDE1234F1Z5
-    @NotBlank(message = "GST number is required")
     @Pattern(regexp = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", message = "Invalid GST number format")
     private String gstNumber;
 
@@ -48,12 +46,10 @@ public class VendorDto {
     private Double rating;
 
     // Location (City / State)
-    @NotBlank(message = "Location is required")
     @Size(min = 2, max = 100, message = "Location must be between 2 and 100 characters")
     private String location;
 
     // Category (IT, Hardware, Logistics)
-    @NotBlank(message = "Category is required")
     @Size(min = 2, max = 50, message = "Category must be between 2 and 50 characters")
     private String category;
 
@@ -77,6 +73,14 @@ public class VendorDto {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getName() {

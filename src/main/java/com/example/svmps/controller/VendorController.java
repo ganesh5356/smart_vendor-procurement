@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.example.svmps.dto.VendorDto;
 import com.example.svmps.service.VendorService;
+import com.example.svmps.entity.VendorProfileUpdateRequest;
 
 import jakarta.validation.Valid;
 
@@ -92,8 +93,35 @@ public class VendorController {
 
     // 🔥 NEW: MAPPING USERNAME TO VENDOR ID
     @GetMapping("/me/id")
-    @PreAuthorize("hasRole('VENDOR')")
+    @PreAuthorize("hasAnyRole('VENDOR','ADMIN','PROCUREMENT','FINANCE')")
     public ResponseEntity<Long> getMyVendorId(Principal principal) {
         return ResponseEntity.ok(vendorService.getVendorIdByUsername(principal.getName()));
+    }
+    // ================= PROFILE UPDATE WORKFLOW =================
+
+    @PostMapping("/profile-update")
+    @PreAuthorize("hasAnyRole('VENDOR','PROCUREMENT','FINANCE')")
+    public VendorProfileUpdateRequest submitProfileUpdate(@RequestBody VendorProfileUpdateRequest request) {
+        return vendorService.submitProfileUpdate(request);
+    }
+
+    @GetMapping("/profile-updates/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<VendorProfileUpdateRequest> getPendingProfileUpdates() {
+        return vendorService.getPendingProfileUpdates();
+    }
+
+    @PostMapping("/profile-updates/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> approveProfileUpdate(@PathVariable Long id) {
+        vendorService.approveProfileUpdate(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/profile-updates/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> rejectProfileUpdate(@PathVariable Long id) {
+        vendorService.rejectProfileUpdate(id);
+        return ResponseEntity.ok().build();
     }
 }

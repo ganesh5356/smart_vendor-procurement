@@ -22,7 +22,6 @@ export default function Login({ initialTab = 'login' }) {
   const { login } = useAuth()
   const nav = useNavigate()
   const client = createClient(() => null)
-  const swaggerUrl = `${window.location.protocol}//${window.location.hostname}:8082/swagger-ui.html`
 
   function switchTab(next) {
     setTab(next)
@@ -179,12 +178,7 @@ export default function Login({ initialTab = 'login' }) {
             {rSuccess && <div className="success-banner">{rSuccess}</div>}
           </form>
         )}
-
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <a href={swaggerUrl} className="nav-link" style={{ fontSize: 12 }} target="_blank" rel="noreferrer">Developer API Documentation</a>
-        </div>
       </div>
     </div>
   )
 }
-

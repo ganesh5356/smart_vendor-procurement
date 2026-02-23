@@ -1,6 +1,21 @@
--- Add search fields to vendors table
-ALTER TABLE vendors
-  ADD COLUMN rating DOUBLE,
-  ADD COLUMN location VARCHAR(150),
-  ADD COLUMN category VARCHAR(100),
-  ADD COLUMN compliant BOOLEAN;
+-- Add search fields to vendors if they don't already exist
+DROP PROCEDURE IF EXISTS add_vendor_search_fields;
+DELIMITER //
+CREATE PROCEDURE add_vendor_search_fields()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendors' AND COLUMN_NAME = 'rating') THEN
+        ALTER TABLE vendors ADD COLUMN rating DOUBLE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendors' AND COLUMN_NAME = 'location') THEN
+        ALTER TABLE vendors ADD COLUMN location VARCHAR(150);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendors' AND COLUMN_NAME = 'category') THEN
+        ALTER TABLE vendors ADD COLUMN category VARCHAR(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'vendors' AND COLUMN_NAME = 'compliant') THEN
+        ALTER TABLE vendors ADD COLUMN compliant BOOLEAN;
+    END IF;
+END //
+DELIMITER ;
+CALL add_vendor_search_fields();
+DROP PROCEDURE IF EXISTS add_vendor_search_fields;

@@ -7,7 +7,7 @@ export default function DownloadReports() {
   const [selected, setSelected] = useState(null);
 
   const renderPanel = () => {
-    switch(selected) {
+    switch (selected) {
       case "vendors": return <VendorReportPanel />;
       case "pr": return <PRReportPanel />;
       case "po": return <POReportPanel />;
@@ -18,8 +18,8 @@ export default function DownloadReports() {
   if (selected) {
     return (
       <div className="download-reports-container">
-        <button 
-          className="btn btn-outline" 
+        <button
+          className="btn btn-outline"
           onClick={() => setSelected(null)}
           style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}
         >

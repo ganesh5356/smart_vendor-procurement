@@ -382,9 +382,15 @@ export default function VendorsPage() {
               ))}
             </select>
             {fieldErrors.userId && <span className="field-error">{fieldErrors.userId}</span>}
-            <small style={{ color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-              Vendor name and email will be fetched from the selected user.
-            </small>
+          </label>
+          <label className="form-label" style={{ gridColumn: '1 / -1' }}>
+            <span>Company Name</span>
+            <input
+              className="form-input"
+              value={form.name}
+              onChange={e => setForm({ ...form, name: e.target.value })}
+              placeholder="Leave blank to use User's username"
+            />
           </label>
 
           <label className="form-label"><span>Phone</span><input className="form-input" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} style={{ borderColor: fieldErrors.phone ? 'var(--danger)' : '' }} required />{fieldErrors.phone && <span className="field-error">{fieldErrors.phone}</span>}</label>
@@ -419,35 +425,28 @@ export default function VendorsPage() {
           <form className="form-grid" onSubmit={updateVendor}>
             <label className="form-label">
               <span>Vendor Name</span>
-              <input 
-                className="form-input" 
-                value={edit.name || ''} 
-                onChange={e => setEdit({ ...edit, name: e.target.value })} 
-                disabled={!!edit.userId}
-                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              <input
+                className="form-input"
+                value={edit.name || ''}
+                onChange={e => setEdit({ ...edit, name: e.target.value })}
               />
-              {edit.userId && <small style={{ color: 'var(--text-muted)' }}>Managed via linked account</small>}
             </label>
 
             <label className="form-label">
               <span>Contact Name</span>
-              <input 
-                className="form-input" 
-                value={edit.contactName || ''} 
-                onChange={e => setEdit({ ...edit, contactName: e.target.value })} 
-                disabled={!!edit.userId}
-                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              <input
+                className="form-input"
+                value={edit.contactName || ''}
+                onChange={e => setEdit({ ...edit, contactName: e.target.value })}
               />
             </label>
 
             <label className="form-label">
               <span>Email</span>
-              <input 
-                className="form-input" 
-                value={edit.email || ''} 
-                onChange={e => setEdit({ ...edit, email: e.target.value })} 
-                disabled={!!edit.userId}
-                style={{ backgroundColor: edit.userId ? 'var(--bg-subtle)' : '' }}
+              <input
+                className="form-input"
+                value={edit.email || ''}
+                onChange={e => setEdit({ ...edit, email: e.target.value })}
               />
             </label>
 

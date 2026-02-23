@@ -143,10 +143,27 @@ public class UserService {
         return toDto(saved);
     }
 
+    // ================= SOFT DELETE =================
+    @org.springframework.transaction.annotation.Transactional
+    public void softDeleteUser(Long id) {
+        User u = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        u.setIsActive(false);
+
+        // 🔥 Sync with Vendor: Deactivate profile if exists
+        vendorRepository.findByUserId(u.getId()).ifPresent(v -> {
+            v.setIsActive(false);
+            vendorRepository.save(v);
+        });
+
+        userRepository.save(u);
+    }
+
+    // ================= HARD DELETE =================
+    @org.springframework.transaction.annotation.Transactional
     public void deleteUser(Long id) {
         User u = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // 🔥 Cleanup associated Vendor profile if it exists
+        // 🔥 Cleanup associated Vendor profile and its data if it exists
         vendorRepository.findByUserId(u.getId()).ifPresent(v -> {
             vendorService.deleteVendorOnly(v.getId());
         });

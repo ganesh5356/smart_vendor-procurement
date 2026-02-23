@@ -47,10 +47,16 @@ public class UserController {
         return userService.updateUser(id, dto);
     }
 
-    // DELETE USER → ADMIN ONLY
+    // SOFT DELETE USER → ADMIN ONLY
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> softDeleteUser(@PathVariable Long id) {
+        userService.softDeleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 
+    // HARD DELETE USER → ADMIN ONLY
+    @DeleteMapping("/{id}/hard")
+    public ResponseEntity<Void> hardDeleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }

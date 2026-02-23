@@ -22,6 +22,8 @@ import com.example.svmps.entity.User;
 import com.example.svmps.entity.Role;
 import java.util.HashSet;
 import java.util.Set;
+import com.example.svmps.repository.VendorProfileUpdateRequestRepository;
+import com.example.svmps.entity.VendorProfileUpdateRequest;
 import org.springframework.data.jpa.domain.Specification;
 
 @Service
@@ -32,19 +34,22 @@ public class VendorService {
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final VendorProfileUpdateRequestRepository profileUpdateRequestRepository;
 
     public VendorService(
             VendorRepository vendorRepository,
             PurchaseRequisitionRepository purchaseRequisitionRepository,
             PurchaseOrderRepository purchaseOrderRepository,
             UserRepository userRepository,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            VendorProfileUpdateRequestRepository profileUpdateRequestRepository) {
 
         this.vendorRepository = vendorRepository;
         this.purchaseRequisitionRepository = purchaseRequisitionRepository;
         this.purchaseOrderRepository = purchaseOrderRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.profileUpdateRequestRepository = profileUpdateRequestRepository;
     }
 
     // ================= CREATE =================
@@ -157,12 +162,21 @@ public class VendorService {
     }
 
     // ================= SOFT DELETE =================
+    @Transactional
     public void softDeleteVendor(Long id) {
 
         Vendor v = vendorRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vendor not found"));
 
         v.setIsActive(false);
+
+        // 🔥 Sync with User: Deactivate account if present
+        if (v.getUser() != null) {
+            User linkedUser = v.getUser();
+            linkedUser.setIsActive(false);
+            userRepository.save(linkedUser);
+        }
+
         vendorRepository.save(v);
     }
 
@@ -224,19 +238,21 @@ public class VendorService {
             return vendorOpt.get().getId();
         }
 
-        // 3. Fallback: If they have VENDOR role but no profile, create one on the fly
-        boolean isVendor = user.getRoles().stream().anyMatch(r -> "VENDOR".equals(r.getName()));
-        if (isVendor) {
+        // 3. Fallback: If they have VENDOR or Internal roles but no profile, create one on the fly
+        boolean hasProfileRole = user.getRoles().stream()
+                .anyMatch(r -> List.of("VENDOR", "ADMIN", "PROCUREMENT", "FINANCE").contains(r.getName()));
+        
+        if (hasProfileRole) {
             Vendor v = new Vendor();
             v.setUser(user);
-            v.setName(user.getUsername() + " Company");
+            v.setName(user.getUsername() + " Profile");
             v.setEmail(user.getEmail());
             v.setContactName(user.getUsername());
             v.setIsActive(true);
             v.setCompliant(true);
             v.setRating(5.0);
-            v.setLocation("Default");
-            v.setCategory("Default");
+            v.setLocation("Internal");
+            v.setCategory("Employee");
             return vendorRepository.save(v).getId();
         }
 
@@ -266,15 +282,13 @@ public class VendorService {
         dto.setId(v.getId());
         if (v.getUser() != null) {
             dto.setUserId(v.getUser().getId());
-            // Prioritize User details if not explicitly set in Vendor
-            dto.setName(v.getUser().getUsername() + " Company");
-            dto.setContactName(v.getUser().getUsername());
-            dto.setEmail(v.getUser().getEmail());
-        } else {
-            dto.setName(v.getName());
-            dto.setContactName(v.getContactName());
-            dto.setEmail(v.getEmail());
+            dto.setUsername(v.getUser().getUsername());
         }
+        
+        // Prioritize Vendor profile fields, fallback to User details if null
+        dto.setName(v.getName() != null ? v.getName() : (v.getUser() != null ? v.getUser().getUsername() + " Company" : "Unnamed Company"));
+        dto.setContactName(v.getContactName() != null ? v.getContactName() : (v.getUser() != null ? v.getUser().getUsername() : "Unnamed"));
+        dto.setEmail(v.getEmail() != null ? v.getEmail() : (v.getUser() != null ? v.getUser().getEmail() : "No Email"));
 
         dto.setPhone(v.getPhone());
         dto.setAddress(v.getAddress());
@@ -288,4 +302,55 @@ public class VendorService {
         return dto;
     }
 
+
+    // ================= PROFILE UPDATE WORKFLOW =================
+
+    @Transactional
+    public VendorProfileUpdateRequest submitProfileUpdate(VendorProfileUpdateRequest request) {
+        request.setId(null); // 🔥 Ensure we always create a NEW request, even if an ID was sent
+        request.setStatus(VendorProfileUpdateRequest.RequestStatus.PENDING);
+        return profileUpdateRequestRepository.save(request);
+    }
+
+    public List<VendorProfileUpdateRequest> getPendingProfileUpdates() {
+        return profileUpdateRequestRepository.findByStatus(VendorProfileUpdateRequest.RequestStatus.PENDING);
+    }
+
+    @Transactional
+    public void approveProfileUpdate(Long requestId) {
+        VendorProfileUpdateRequest request = profileUpdateRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (request.getStatus() != VendorProfileUpdateRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Only pending requests can be approved");
+        }
+
+        Vendor v = request.getVendor();
+        if (request.getName() != null) v.setName(request.getName());
+        if (request.getContactName() != null) v.setContactName(request.getContactName());
+        if (request.getEmail() != null) v.setEmail(request.getEmail());
+        if (request.getPhone() != null) v.setPhone(request.getPhone());
+        if (request.getAddress() != null) v.setAddress(request.getAddress());
+        if (request.getGstNumber() != null) v.setGstNumber(request.getGstNumber());
+        if (request.getLocation() != null) v.setLocation(request.getLocation());
+        if (request.getCategory() != null) v.setCategory(request.getCategory());
+
+        vendorRepository.save(v);
+
+        request.setStatus(VendorProfileUpdateRequest.RequestStatus.APPROVED);
+        profileUpdateRequestRepository.save(request);
+    }
+
+    @Transactional
+    public void rejectProfileUpdate(Long requestId) {
+        VendorProfileUpdateRequest request = profileUpdateRequestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Request not found"));
+
+        if (request.getStatus() != VendorProfileUpdateRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Only pending requests can be rejected");
+        }
+
+        request.setStatus(VendorProfileUpdateRequest.RequestStatus.REJECTED);
+        profileUpdateRequestRepository.save(request);
+    }
 }

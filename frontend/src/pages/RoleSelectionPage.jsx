@@ -197,7 +197,7 @@ export default function RoleSelectionPage() {
                                 <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>Contact Information</h3>
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            <div className="responsive-grid">
                                 <div className="form-group">
                                     <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Full Legal Name</label>
                                     <input type="text" name="fullName" className="form-control" placeholder="e.g. John Doe" value={formData.fullName} onChange={handleChange} required style={{ borderRadius: '12px', padding: '12px' }} />
@@ -206,7 +206,7 @@ export default function RoleSelectionPage() {
                                     <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Professional Email</label>
                                     <input type="email" name="email" className="form-control" placeholder="john.doe@company.com" value={formData.email} onChange={handleChange} required style={{ borderRadius: '12px', padding: '12px' }} />
                                 </div>
-                                <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                <div className="form-group" style={{ gridColumn: 'span var(--cols, 2)' }}>
                                     <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Active Mobile Number</label>
                                     <input type="text" name="phone" className="form-control" placeholder="+91 XXXXX XXXXX" value={formData.phone} onChange={handleChange} required style={{ borderRadius: '12px', padding: '12px' }} />
                                 </div>
@@ -220,7 +220,7 @@ export default function RoleSelectionPage() {
                                     <span style={{ fontSize: '1.4rem' }}>🏬</span>
                                     <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)' }}>Organization Credentials</h3>
                                 </div>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                                <div className="responsive-grid">
                                     <div className="form-group">
                                         <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>GST Identification Number</label>
                                         <input type="text" name="gstNumber" className="form-control" placeholder="29XXXXX1234F1Z5" value={formData.gstNumber} onChange={handleChange} required style={{ borderRadius: '12px', padding: '12px' }} />
@@ -237,7 +237,7 @@ export default function RoleSelectionPage() {
                                         <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Vendor Trust Rating (1-5)</label>
                                         <input type="number" step="0.1" min="1" max="5" name="rating" className="form-control" value={formData.rating} onChange={handleChange} required style={{ borderRadius: '12px', padding: '12px' }} />
                                     </div>
-                                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                                    <div className="form-group" style={{ gridColumn: 'span var(--cols, 2)' }}>
                                         <label style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '8px', display: 'block', textTransform: 'uppercase' }}>Registered Business Address</label>
                                         <textarea name="address" className="form-control" placeholder="Complete office or factory address..." value={formData.address} onChange={handleChange} required rows="3" style={{ borderRadius: '12px', padding: '12px', resize: 'none' }}></textarea>
                                     </div>

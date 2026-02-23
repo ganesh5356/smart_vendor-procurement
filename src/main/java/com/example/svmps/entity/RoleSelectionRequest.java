@@ -37,8 +37,9 @@ public class RoleSelectionRequest {
     @Column(columnDefinition = "TEXT")
     private String additionalDetails;
 
-    @Column(nullable = false)
-    private String documentPath;
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JoinColumn(name = "document_id")
+    private Document document;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -159,12 +160,12 @@ public class RoleSelectionRequest {
         this.additionalDetails = additionalDetails;
     }
 
-    public String getDocumentPath() {
-        return documentPath;
+    public Document getDocument() {
+        return document;
     }
 
-    public void setDocumentPath(String documentPath) {
-        this.documentPath = documentPath;
+    public void setDocument(Document document) {
+        this.document = document;
     }
 
     public RequestStatus getStatus() {
