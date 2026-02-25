@@ -22,7 +22,7 @@ public class ReportRetryScheduler {
         this.service = service;
     }
 
-    @Scheduled(fixedDelay = 120000)
+    @Scheduled(fixedDelay = 3600000)
     public void retryFailedReports() {
 
         List<ReportLog> failed = repo.findByStatusAndRetryCountLessThanOrderByGeneratedAtDesc(
