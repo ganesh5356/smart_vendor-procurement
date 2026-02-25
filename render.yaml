@@ -23,9 +23,9 @@ services:
         value: 8080
 
   # 2. Frontend: React Static Site
-  - type: static_site
+  - type: web
     name: spvms-frontend
-    runtime: node
+    env: static
     rootDir: frontend # Relative to vendor_management
     buildCommand: npm install && npm run build
     staticPublishPath: dist
