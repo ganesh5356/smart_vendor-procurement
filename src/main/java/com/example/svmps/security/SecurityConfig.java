@@ -88,7 +88,8 @@ public class SecurityConfig {
 
         config.setAllowedOriginPatterns(List.of(
                 "http://localhost:5173",
-                "https://*.onrender.com"
+                "https://*.onrender.com",
+                "https://spvms-frontend.onrender.com"
         ));
 
         config.setAllowedMethods(List.of(
