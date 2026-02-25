@@ -27,6 +27,7 @@ services:
   - type: web
     name: spvms-frontend
     env: static
+    # No plan: free here because static env doesn't support it
     rootDir: frontend # Relative to vendor_management
     buildCommand: npm install && npm run build
     staticPublishPath: dist
