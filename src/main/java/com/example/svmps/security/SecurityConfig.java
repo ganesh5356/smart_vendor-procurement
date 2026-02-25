@@ -54,7 +54,17 @@ public class SecurityConfig {
                         "/swagger-ui/**",
                         "/swagger-ui.html",
                         "/v3/api-docs/**",
-                        "/api-docs/**"
+                        "/api-docs/**",
+
+                        // Static resources for React frontend
+                        "/",
+                        "/index.html",
+                        "/manifest.json",
+                        "/assets/**",
+                        "/*.js",
+                        "/*.css",
+                        "/*.png",
+                        "/*.svg"
                 ).permitAll()
 
                 //  EVERYTHING ELSE NEEDS JWT
