@@ -7,7 +7,10 @@ export function createClient(getToken) {
     const token = getToken()
     if (token) headers['Authorization'] = `Bearer ${token}`
 
-    const res = await fetch(path, { ...options, headers })
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || ''
+    const url = path.startsWith('http') ? path : `${baseUrl}${path}`
+
+    const res = await fetch(url, { ...options, headers })
     const text = await res.text()
 
     let data = null

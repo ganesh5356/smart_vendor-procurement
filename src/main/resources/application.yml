@@ -50,6 +50,9 @@ app:
   reports:
     email: ganesh938049@gmail.com
 
+jwt:
+  secret: ${JWT_SECRET:svmps_super_secret_key_which_must_be_very_long_123456789}
+
 springdoc:
   api-docs:
     path: /api-docs
