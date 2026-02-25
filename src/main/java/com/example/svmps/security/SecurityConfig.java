@@ -60,6 +60,7 @@ public class SecurityConfig {
                         "/",
                         "/index.html",
                         "/manifest.json",
+                        "/favicon.ico",
                         "/assets/**",
                         "/*.js",
                         "/*.css",

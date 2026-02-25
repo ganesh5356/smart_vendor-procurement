@@ -99,11 +99,15 @@ public class VendorService {
         return toDto(vendorRepository.save(v));
     }
 
-    // ================= READ ALL =================
+    // ================= READ ALL (excludes ADMIN vendor profiles) =================
     public List<VendorDto> getAllVendors() {
 
         return vendorRepository.findAll()
                 .stream()
+                // Exclude vendors whose linked user has the ADMIN role
+                .filter(v -> v.getUser() == null ||
+                        v.getUser().getRoles().stream()
+                                .noneMatch(r -> "ADMIN".equals(r.getName())))
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -238,11 +242,11 @@ public class VendorService {
             return vendorOpt.get().getId();
         }
 
-        // 3. Fallback: If they have VENDOR or Internal roles but no profile, create one on the fly
-        boolean hasProfileRole = user.getRoles().stream()
-                .anyMatch(r -> List.of("VENDOR", "ADMIN", "PROCUREMENT", "FINANCE").contains(r.getName()));
+        // 3. Fallback: Only create a profile for non-admin internal roles
+        boolean hasVendorRole = user.getRoles().stream()
+                .anyMatch(r -> List.of("VENDOR", "PROCUREMENT", "FINANCE").contains(r.getName()));
         
-        if (hasProfileRole) {
+        if (hasVendorRole) {
             Vendor v = new Vendor();
             v.setUser(user);
             v.setName(user.getUsername() + " Profile");

@@ -27,26 +27,20 @@ spring:
     out-of-order: true
 
   mail:
-    host: smtp.gmail.com
-    port: 465
-    username: saxena.juhee8@gmail.com
-    password: aniyguscverdmsku
+    host: smtp-relay.brevo.com
+    port: 587
+    username: ${BREVO_SMTP_USER}       # Set this in Render environment variables
+    password: ${BREVO_SMTP_KEY}        # Set this in Render environment variables
     properties:
       mail:
         smtp:
           auth: true
           starttls:
-            enable: false
-          ssl:
             enable: true
-            trust: "*"
-          socketFactory:
-            port: 465
-            class: javax.net.ssl.SSLSocketFactory
+            required: true
           connectiontimeout: 10000
           timeout: 10000
           writetimeout: 10000
-          debug: true
 
 # Root-level properties (0 indentation)
 app:
