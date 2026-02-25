@@ -38,16 +38,16 @@ public class ScheduledReportService {
         this.vendorService = vendorService;
     }
 
-    // 🔁 DAILY – every 2 minutes
-    @Scheduled(cron = "0 */2 * * * ?")
-    public void dailyReport() {
-        processReport(null, ReportType.DAILY);
+    // 🔁 SEMI-ANNUAL – Runs on Jan 1st and July 1st at midnight
+    @Scheduled(cron = "0 0 0 1 1,7 *")
+    public void semiAnnualReport() {
+        processReport(null, ReportType.SEMI_ANNUAL);
     }
 
-    // 🔁 WEEKLY – every 5 minutes
-    @Scheduled(cron = "0 */5 * * * ?")
-    public void weeklyReport() {
-        processReport(null, ReportType.WEEKLY);
+    // 🔁 ANNUAL – Runs on Jan 1st at midnight
+    @Scheduled(cron = "0 0 0 1 1 *")
+    public void annualReport() {
+        processReport(null, ReportType.ANNUAL);
     }
 
     public void retryReport(ReportLog log) {
