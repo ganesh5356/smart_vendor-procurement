@@ -23,7 +23,7 @@ services:
         value: 8080
 
   # 2. Frontend: React Static Site
-  - type: static
+  - type: static_site
     name: spvms-frontend
     runtime: node
     rootDir: frontend # Relative to vendor_management
