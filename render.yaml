@@ -3,6 +3,7 @@ services:
   - type: web
     name: spvms-backend
     runtime: docker
+    plan: free
     # No rootDir needed because vendor_management is the repository root
     envVars:
       - key: SPRING_DATASOURCE_URL
@@ -26,6 +27,7 @@ services:
   - type: web
     name: spvms-frontend
     env: static
+    plan: free
     rootDir: frontend # Relative to vendor_management
     buildCommand: npm install && npm run build
     staticPublishPath: dist
