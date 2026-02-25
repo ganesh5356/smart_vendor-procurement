@@ -38,14 +38,14 @@ public class ScheduledReportService {
         this.vendorService = vendorService;
     }
 
-    // 🔁 SEMI-ANNUAL – Runs on Jan 1st and July 1st at midnight
-    @Scheduled(cron = "0 0 0 1 1,7 *")
+    // 🔁 SEMI-ANNUAL – Runs every 182 days (approx 6 months) from startup
+    @Scheduled(fixedRateString = "PT4368H") 
     public void semiAnnualReport() {
         processReport(null, ReportType.SEMI_ANNUAL);
     }
 
-    // 🔁 ANNUAL – Runs on Jan 1st at midnight
-    @Scheduled(cron = "0 0 0 1 1 *")
+    // 🔁 ANNUAL – Runs every 365 days from startup
+    @Scheduled(fixedRateString = "PT8760H")
     public void annualReport() {
         processReport(null, ReportType.ANNUAL);
     }
