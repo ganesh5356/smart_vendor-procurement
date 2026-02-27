@@ -13,19 +13,23 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState('admin')
   const [pendingRequests, setPendingRequests] = useState([])
   const [profileUpdates, setProfileUpdates] = useState([])
+  const [userProfileUpdates, setUserProfileUpdates] = useState([])
   const [viewRequest, setViewRequest] = useState(null)
   const [viewProfileUpdate, setViewProfileUpdate] = useState(null)
+  const [viewUserProfileUpdate, setViewUserProfileUpdate] = useState(null)
   const [deleteId, setDeleteId] = useState(null)
 
   async function load() {
-    const [userData, requestsData, profileData] = await Promise.all([
+    const [userData, requestsData, profileData, userProfileData] = await Promise.all([
       client.get('/api/users'),
       client.get('/api/role-requests/pending').catch(() => []),
-      client.get('/api/vendors/profile-updates/pending').catch(() => [])
+      client.get('/api/vendors/profile-updates/pending').catch(() => []),
+      client.get('/api/users/profile-updates/pending').catch(() => [])
     ])
     setUsers(userData)
     setPendingRequests(requestsData)
     setProfileUpdates(profileData)
+    setUserProfileUpdates(userProfileData)
   }
   useEffect(() => { load() }, [])
 
@@ -53,6 +57,20 @@ export default function UsersPage() {
   async function handleRejectProfileUpdate(id) {
     if (window.confirm('Reject this profile update?')) {
       await client.post(`/api/vendors/profile-updates/${id}/reject`)
+      await load()
+    }
+  }
+
+  async function handleApproveUserProfileUpdate(id) {
+    if (window.confirm('Approve this user profile update?')) {
+      await client.post(`/api/users/profile-updates/${id}/approve`)
+      await load()
+    }
+  }
+
+  async function handleRejectUserProfileUpdate(id) {
+    if (window.confirm('Reject this user profile update?')) {
+      await client.post(`/api/users/profile-updates/${id}/reject`)
       await load()
     }
   }
@@ -127,13 +145,14 @@ export default function UsersPage() {
     { id: 'vendor', label: 'Vendors', count: groupedUsers.vendor.length, color: 'success' },
     { id: 'users', label: 'No Role', count: groupedUsers.users.length, color: 'secondary' },
     { id: 'requests', label: 'Role Requests', count: pendingRequests.length, color: 'danger' },
-    { id: 'profileUpdates', label: 'Profile Updates', count: profileUpdates.length, color: 'warning' }
+    { id: 'profileUpdates', label: 'Vendor Profile Updates', count: profileUpdates.length, color: 'warning' },
+    { id: 'userProfileUpdates', label: 'User Profile Updates', count: userProfileUpdates.length, color: 'warning' }
   ];
 
   const renderProfileUpdatesTable = () => (
     <div className="panel">
       <div className="panel-header">
-        <h2 className="section-title">Pending Profile Updates ({profileUpdates.length})</h2>
+        <h2 className="section-title">Pending Vendor Profile Updates ({profileUpdates.length})</h2>
       </div>
       {profileUpdates.length > 0 ? (
         <div className="table-wrap">
@@ -173,7 +192,59 @@ export default function UsersPage() {
         </div>
       ) : (
         <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          No pending profile updates
+          No pending vendor profile updates
+        </div>
+      )}
+    </div>
+  );
+
+  const renderUserProfileUpdatesTable = () => (
+    <div className="panel">
+      <div className="panel-header">
+        <h2 className="section-title">Pending User Profile Updates ({userProfileUpdates.length})</h2>
+      </div>
+      {userProfileUpdates.length > 0 ? (
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Requested Changes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {userProfileUpdates.map(upd => (
+                <tr key={upd.id}>
+                  <td>
+                    <div style={{ fontWeight: 600 }}>@{upd.user.username}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{upd.user.email}</div>
+                    <div style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                      {(upd.user.roles || []).map(r => <span key={r} className="badge badge-info" style={{ marginRight: 4 }}>{r}</span>)}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.85rem' }}>
+                      {upd.username && <div>• New Username: <strong>{upd.username}</strong></div>}
+                      {upd.email && <div>• New Email: <strong>{upd.email}</strong></div>}
+                      {upd.password && <div>• Password: <em>change requested</em></div>}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button className="btn btn-outline btn-small" onClick={() => setViewUserProfileUpdate(upd)}>Details</button>
+                      <button className="btn btn-success btn-small" onClick={() => handleApproveUserProfileUpdate(upd.id)}>Approve</button>
+                      <button className="btn btn-danger btn-small" onClick={() => handleRejectUserProfileUpdate(upd.id)}>Reject</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+          No pending user profile updates
         </div>
       )}
     </div>
@@ -256,7 +327,8 @@ export default function UsersPage() {
       <div className="tab-content">
         {activeTab === 'requests' ? renderRequestsTable() :
           activeTab === 'profileUpdates' ? renderProfileUpdatesTable() :
-            renderUserTable(groupedUsers[activeTab])}
+            activeTab === 'userProfileUpdates' ? renderUserProfileUpdatesTable() :
+              renderUserTable(groupedUsers[activeTab])}
       </div>
 
       <Modal open={showCreate} title="Create New User" onClose={() => setShowCreate(false)}>
@@ -406,7 +478,7 @@ export default function UsersPage() {
       }
       {
         viewProfileUpdate && (
-          <Modal open={!!viewProfileUpdate} title="Profile Update Details" onClose={() => setViewProfileUpdate(null)}>
+          <Modal open={!!viewProfileUpdate} title="Vendor Profile Update Details" onClose={() => setViewProfileUpdate(null)}>
             <div className="request-details">
               <div className="section-group">
                 <h3 className="section-subtitle">Current Profile</h3>
@@ -436,6 +508,38 @@ export default function UsersPage() {
                 <button className="btn btn-danger" onClick={() => { handleRejectProfileUpdate(viewProfileUpdate.id); setViewProfileUpdate(null); }}>Reject</button>
                 <button className="btn btn-success" onClick={() => { handleApproveProfileUpdate(viewProfileUpdate.id); setViewProfileUpdate(null); }}>Approve</button>
                 <button className="btn btn-secondary" onClick={() => setViewProfileUpdate(null)}>Close</button>
+              </div>
+            </div>
+          </Modal>
+        )
+      }
+
+      {
+        viewUserProfileUpdate && (
+          <Modal open={!!viewUserProfileUpdate} title="User Profile Update Details" onClose={() => setViewUserProfileUpdate(null)}>
+            <div className="request-details">
+              <div className="section-group">
+                <h3 className="section-subtitle">Current Account</h3>
+                <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.9rem', opacity: 0.7 }}>
+                  <div><strong>Username:</strong> @{viewUserProfileUpdate.user.username}</div>
+                  <div><strong>Email:</strong> {viewUserProfileUpdate.user.email}</div>
+                  <div><strong>Roles:</strong> {(viewUserProfileUpdate.user.roles || []).join(', ')}</div>
+                </div>
+              </div>
+
+              <div className="section-group" style={{ marginTop: '20px', padding: '15px', border: '1px solid var(--warning)', borderRadius: '8px', backgroundColor: 'rgba(245, 158, 11, 0.05)' }}>
+                <h3 className="section-subtitle" style={{ color: 'var(--warning)' }}>Requested Changes</h3>
+                <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                  {viewUserProfileUpdate.username && <div className="detail-item"><strong>New Username:</strong> {viewUserProfileUpdate.username}</div>}
+                  {viewUserProfileUpdate.email && <div className="detail-item"><strong>New Email:</strong> {viewUserProfileUpdate.email}</div>}
+                  {viewUserProfileUpdate.password && <div className="detail-item" style={{ gridColumn: 'span 2' }}><strong>Password:</strong> <em>Change has been requested (stored securely)</em></div>}
+                </div>
+              </div>
+
+              <div className="modal-footer" style={{ marginTop: '30px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button className="btn btn-danger" onClick={() => { handleRejectUserProfileUpdate(viewUserProfileUpdate.id); setViewUserProfileUpdate(null); }}>Reject</button>
+                <button className="btn btn-success" onClick={() => { handleApproveUserProfileUpdate(viewUserProfileUpdate.id); setViewUserProfileUpdate(null); }}>Approve</button>
+                <button className="btn btn-secondary" onClick={() => setViewUserProfileUpdate(null)}>Close</button>
               </div>
             </div>
           </Modal>

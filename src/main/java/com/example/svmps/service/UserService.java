@@ -4,12 +4,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.svmps.dto.UserDto;
 import com.example.svmps.entity.Role;
 import com.example.svmps.entity.User;
+import com.example.svmps.entity.UserProfileUpdateRequest;
 import com.example.svmps.entity.Vendor;
 import com.example.svmps.repository.RoleRepository;
+import com.example.svmps.repository.UserProfileUpdateRequestRepository;
 import com.example.svmps.repository.UserRepository;
 import com.example.svmps.repository.VendorRepository;
 
@@ -25,16 +28,19 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final VendorRepository vendorRepository;
-    private final VendorService vendorService; // 🔥 NEW dependency
+    private final VendorService vendorService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final UserProfileUpdateRequestRepository userProfileUpdateRequestRepository;
 
     public UserService(UserRepository userRepository, RoleRepository roleRepository, VendorRepository vendorRepository,
-            VendorService vendorService, BCryptPasswordEncoder passwordEncoder) {
+            VendorService vendorService, BCryptPasswordEncoder passwordEncoder,
+            UserProfileUpdateRequestRepository userProfileUpdateRequestRepository) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.vendorRepository = vendorRepository;
         this.vendorService = vendorService;
         this.passwordEncoder = passwordEncoder;
+        this.userProfileUpdateRequestRepository = userProfileUpdateRequestRepository;
     }
 
     public UserDto createUser(UserDto dto) {
@@ -182,6 +188,83 @@ public class UserService {
         User u = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
         return toDto(u);
+    }
+
+    // ================= ADMIN DIRECT SELF-UPDATE =================
+    @Transactional
+    public UserDto updateAdminProfile(String username, UserDto dto) {
+        User u = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
+            u.setUsername(dto.getUsername());
+        }
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            u.setEmail(dto.getEmail());
+        }
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            if (dto.getPassword().length() < 6) {
+                throw new IllegalArgumentException("Password must be at least 6 characters");
+            }
+            u.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        return toDto(userRepository.save(u));
+    }
+
+    // ================= PR / FINANCE PROFILE UPDATE REQUEST =================
+    @Transactional
+    public UserProfileUpdateRequest submitProfileUpdateRequest(String username, UserDto dto) {
+        User u = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+
+        UserProfileUpdateRequest req = new UserProfileUpdateRequest();
+        req.setUser(u);
+        req.setUsername(dto.getUsername() != null && !dto.getUsername().isBlank() ? dto.getUsername() : null);
+        req.setEmail(dto.getEmail() != null && !dto.getEmail().isBlank() ? dto.getEmail() : null);
+        if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+            if (dto.getPassword().length() < 6) {
+                throw new IllegalArgumentException("Password must be at least 6 characters");
+            }
+            req.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+        req.setStatus(UserProfileUpdateRequest.RequestStatus.PENDING);
+        return userProfileUpdateRequestRepository.save(req);
+    }
+
+    public List<UserProfileUpdateRequest> getPendingUserProfileUpdates() {
+        return userProfileUpdateRequestRepository.findByStatus(UserProfileUpdateRequest.RequestStatus.PENDING);
+    }
+
+    @Transactional
+    public void approveUserProfileUpdate(Long requestId) {
+        UserProfileUpdateRequest req = userProfileUpdateRequestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+
+        if (req.getStatus() != UserProfileUpdateRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Only pending requests can be approved");
+        }
+
+        User u = req.getUser();
+        if (req.getUsername() != null) u.setUsername(req.getUsername());
+        if (req.getEmail() != null) u.setEmail(req.getEmail());
+        if (req.getPassword() != null) u.setPassword(req.getPassword()); // already hashed
+
+        userRepository.save(u);
+
+        req.setStatus(UserProfileUpdateRequest.RequestStatus.APPROVED);
+        userProfileUpdateRequestRepository.save(req);
+    }
+
+    @Transactional
+    public void rejectUserProfileUpdate(Long requestId) {
+        UserProfileUpdateRequest req = userProfileUpdateRequestRepository.findById(requestId)
+                .orElseThrow(() -> new IllegalArgumentException("Request not found: " + requestId));
+
+        if (req.getStatus() != UserProfileUpdateRequest.RequestStatus.PENDING) {
+            throw new IllegalStateException("Only pending requests can be rejected");
+        }
+
+        req.setStatus(UserProfileUpdateRequest.RequestStatus.REJECTED);
+        userProfileUpdateRequestRepository.save(req);
     }
 
     public UserDto toDto(User u) {

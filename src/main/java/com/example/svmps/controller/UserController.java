@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.svmps.dto.UserDto;
+import com.example.svmps.entity.UserProfileUpdateRequest;
 import com.example.svmps.service.UserService;
 
 import jakarta.validation.Valid;
@@ -81,5 +82,48 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserDto> getMe(Principal principal) {
         return ResponseEntity.ok(userService.getMe(principal.getName()));
+    }
+
+    // ===== ADMIN DIRECT SELF-EDIT (no approval needed) =====
+    @PutMapping("/me/profile")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserDto> updateAdminProfile(
+            Principal principal,
+            @RequestBody UserDto dto) {
+        UserDto updated = userService.updateAdminProfile(principal.getName(), dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    // ===== PROCUREMENT / FINANCE: SUBMIT PROFILE UPDATE FOR APPROVAL =====
+    @PostMapping("/me/profile-update")
+    @PreAuthorize("hasAnyRole('PROCUREMENT','FINANCE')")
+    public ResponseEntity<UserProfileUpdateRequest> submitProfileUpdate(
+            Principal principal,
+            @RequestBody UserDto dto) {
+        UserProfileUpdateRequest saved = userService.submitProfileUpdateRequest(principal.getName(), dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    // ===== ADMIN: GET PENDING USER PROFILE UPDATES =====
+    @GetMapping("/profile-updates/pending")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserProfileUpdateRequest> getPendingUserProfileUpdates() {
+        return userService.getPendingUserProfileUpdates();
+    }
+
+    // ===== ADMIN: APPROVE USER PROFILE UPDATE =====
+    @PostMapping("/profile-updates/{id}/approve")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> approveUserProfileUpdate(@PathVariable Long id) {
+        userService.approveUserProfileUpdate(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // ===== ADMIN: REJECT USER PROFILE UPDATE =====
+    @PostMapping("/profile-updates/{id}/reject")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> rejectUserProfileUpdate(@PathVariable Long id) {
+        userService.rejectUserProfileUpdate(id);
+        return ResponseEntity.ok().build();
     }
 }

@@ -9,10 +9,12 @@ export default function VendorProfile() {
 
   const isVendor = hasRole('VENDOR')
   const isAdmin = hasRole('ADMIN')
+  const isPrOrFinance = hasRole('PROCUREMENT') || hasRole('FINANCE')
 
-  return isVendor
-    ? <VendorOwnProfile client={client} />
-    : <UserAccountProfile client={client} isAdmin={isAdmin} />
+  if (isVendor) return <VendorOwnProfile client={client} />
+  if (isAdmin) return <AdminAccountProfile client={client} />
+  if (isPrOrFinance) return <PrFinanceAccountProfile client={client} />
+  return <div className="error-banner">❌ Access denied</div>
 }
 
 // ─── VENDOR profile flow (existing logic) ─────────────────────────────────────
@@ -149,16 +151,43 @@ function VendorOwnProfile({ client }) {
   )
 }
 
-// ─── ADMIN / PROCUREMENT / FINANCE account profile view ───────────────────────
-function UserAccountProfile({ client, isAdmin }) {
+// ─── ADMIN: direct self-edit (no approval) ────────────────────────────────────
+function AdminAccountProfile({ client }) {
   const [userInfo, setUserInfo] = useState(null)
+  const [edit, setEdit] = useState(false)
+  const [form, setForm] = useState({ username: '', email: '', password: '' })
+  const [msg, setMsg] = useState('')
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    client.get('/api/users/me')
-      .then(data => setUserInfo(data))
-      .catch(err => setError(extractErrorMessage(err)))
-  }, [])
+  async function load() {
+    try {
+      const data = await client.get('/api/users/me')
+      setUserInfo(data)
+      setForm({ username: data.username, email: data.email, password: '' })
+    } catch (err) {
+      setError(extractErrorMessage(err))
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handleSave(e) {
+    e.preventDefault()
+    setMsg('')
+    setError('')
+    try {
+      await client.put('/api/users/me/profile', {
+        username: form.username,
+        email: form.email,
+        password: form.password || undefined
+      })
+      setMsg('Profile updated successfully!')
+      setEdit(false)
+      load()
+    } catch (err) {
+      setError(extractErrorMessage(err))
+    }
+  }
 
   if (!userInfo && !error) return <div>Loading profile...</div>
   if (error) return <div className="error-banner">❌ {error}</div>
@@ -166,8 +195,15 @@ function UserAccountProfile({ client, isAdmin }) {
   return (
     <div className="vendor-profile-container">
       <header className="page-header">
-        <h1 className="page-title">My Account Profile</h1>
+        <h1 className="page-title">My Admin Profile</h1>
+        {!edit && (
+          <button className="btn btn-primary" onClick={() => setEdit(true)}>
+            Edit Profile
+          </button>
+        )}
       </header>
+
+      {msg && <div className="success-banner">✅ {msg}</div>}
 
       <div className="panel">
         <div className="panel-header">
@@ -177,36 +213,178 @@ function UserAccountProfile({ client, isAdmin }) {
           </span>
         </div>
         <div className="panel-body">
-          <div className="profile-details-grid">
-            <div className="profile-item">
-              <label className="profile-label">Username</label>
-              <div className="profile-value" style={{ color: 'var(--primary)', fontWeight: 600 }}>@{userInfo.username}</div>
-            </div>
-            <div className="profile-item">
-              <label className="profile-label">Email</label>
-              <div className="profile-value">{userInfo.email || '—'}</div>
-            </div>
-            <div className="profile-item">
-              <label className="profile-label">Status</label>
-              <div>
-                <span className={`badge ${userInfo.isActive ? 'badge-success' : 'badge-danger'}`}>
-                  {userInfo.isActive ? 'Active' : 'Inactive'}
-                </span>
+          {!edit ? (
+            <div className="profile-details-grid">
+              <div className="profile-item">
+                <label className="profile-label">Username</label>
+                <div className="profile-value" style={{ color: 'var(--primary)', fontWeight: 600 }}>@{userInfo.username}</div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Email</label>
+                <div className="profile-value">{userInfo.email || '—'}</div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Status</label>
+                <div>
+                  <span className={`badge ${userInfo.isActive ? 'badge-success' : 'badge-danger'}`}>
+                    {userInfo.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Roles</label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {(userInfo.roles || []).map(r => (
+                    <span key={r} className="badge badge-info">{r}</span>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="profile-item">
-              <label className="profile-label">Roles</label>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                {(userInfo.roles || []).map(r => (
-                  <span key={r} className="badge badge-info">{r}</span>
-                ))}
+          ) : (
+            <form className="form-grid" onSubmit={handleSave}>
+              <label className="form-label">
+                <span>Username</span>
+                <input className="form-input" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+              </label>
+              <label className="form-label">
+                <span>Email</span>
+                <input className="form-input" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+              </label>
+              <label className="form-label" style={{ gridColumn: '1 / -1' }}>
+                <span>New Password <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>(leave blank to keep current)</span></span>
+                <input className="form-input" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" />
+              </label>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+                <button type="button" className="btn btn-outline" onClick={() => { setEdit(false); setMsg(''); setError('') }}>Cancel</button>
               </div>
-            </div>
-          </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
-          <div style={{ marginTop: '16px', padding: '12px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            ℹ️ To update your account details (username, email, or password), please contact the system administrator.
-          </div>
+// ─── PROCUREMENT / FINANCE: edit with admin approval ─────────────────────────
+function PrFinanceAccountProfile({ client }) {
+  const [userInfo, setUserInfo] = useState(null)
+  const [edit, setEdit] = useState(false)
+  const [form, setForm] = useState({ username: '', email: '', password: '' })
+  const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
+  const [hasPending, setHasPending] = useState(false)
+
+  async function load() {
+    try {
+      const data = await client.get('/api/users/me')
+      setUserInfo(data)
+      setForm({ username: data.username, email: data.email, password: '' })
+    } catch (err) {
+      setError(extractErrorMessage(err))
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setMsg('')
+    setError('')
+    try {
+      await client.post('/api/users/me/profile-update', {
+        username: form.username,
+        email: form.email,
+        password: form.password || undefined
+      })
+      setMsg('Profile update submitted for admin approval. Changes will reflect once approved.')
+      setHasPending(true)
+      setEdit(false)
+    } catch (err) {
+      setError(extractErrorMessage(err))
+    }
+  }
+
+  if (!userInfo && !error) return <div>Loading profile...</div>
+  if (error) return <div className="error-banner">❌ {error}</div>
+
+  return (
+    <div className="vendor-profile-container">
+      <header className="page-header">
+        <h1 className="page-title">My Account Profile</h1>
+        {!edit && (
+          <button className="btn btn-primary" onClick={() => setEdit(true)}>
+            Request Profile Update
+          </button>
+        )}
+      </header>
+
+      {msg && <div className="success-banner">✅ {msg}</div>}
+
+      {hasPending && (
+        <div style={{ marginBottom: '16px', padding: '12px 16px', background: 'rgba(245,158,11,0.1)', border: '1px solid var(--warning)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--warning)' }}>
+          ⏳ You have a pending profile update request awaiting admin approval.
+        </div>
+      )}
+
+      <div className="panel">
+        <div className="panel-header">
+          <h2 className="section-title">@{userInfo.username}</h2>
+          <span className={`badge ${userInfo.isActive ? 'badge-success' : 'badge-danger'}`}>
+            {userInfo.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        <div className="panel-body">
+          {!edit ? (
+            <div className="profile-details-grid">
+              <div className="profile-item">
+                <label className="profile-label">Username</label>
+                <div className="profile-value" style={{ color: 'var(--primary)', fontWeight: 600 }}>@{userInfo.username}</div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Email</label>
+                <div className="profile-value">{userInfo.email || '—'}</div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Status</label>
+                <div>
+                  <span className={`badge ${userInfo.isActive ? 'badge-success' : 'badge-danger'}`}>
+                    {userInfo.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+              <div className="profile-item">
+                <label className="profile-label">Roles</label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {(userInfo.roles || []).map(r => (
+                    <span key={r} className="badge badge-info">{r}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <form className="form-grid" onSubmit={handleSubmit}>
+              <label className="form-label">
+                <span>Username</span>
+                <input className="form-input" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} required />
+              </label>
+              <label className="form-label">
+                <span>Email</span>
+                <input className="form-input" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
+              </label>
+              <label className="form-label" style={{ gridColumn: '1 / -1' }}>
+                <span>New Password <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>(leave blank to keep current)</span></span>
+                <input className="form-input" type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" />
+              </label>
+              <div style={{ marginTop: '4px', gridColumn: '1 / -1', padding: '10px', background: 'rgba(245,158,11,0.08)', borderRadius: '6px', fontSize: '0.85rem', color: 'var(--warning)' }}>
+                ℹ️ Your changes will be sent to the admin for review. They will take effect only after approval.
+              </div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button type="submit" className="btn btn-primary">Submit for Approval</button>
+                <button type="button" className="btn btn-outline" onClick={() => { setEdit(false); setMsg(''); setError('') }}>Cancel</button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
     </div>
