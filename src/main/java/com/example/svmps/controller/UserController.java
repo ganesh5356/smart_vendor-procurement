@@ -1,5 +1,6 @@
 package com.example.svmps.controller;
 
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -73,5 +74,12 @@ public class UserController {
     @PreAuthorize("hasAnyRole('ADMIN','PROCUREMENT')")
     public List<UserDto> getUsersWithNoRoles() {
         return userService.getUsersWithNoRoles();
+    }
+
+    // GET OWN PROFILE → ANY AUTHENTICATED USER
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDto> getMe(Principal principal) {
+        return ResponseEntity.ok(userService.getMe(principal.getName()));
     }
 }

@@ -178,6 +178,12 @@ public class UserService {
                 .toList();
     }
 
+    public UserDto getMe(String username) {
+        User u = userRepository.findByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + username));
+        return toDto(u);
+    }
+
     public UserDto toDto(User u) {
         UserDto dto = new UserDto();
         dto.setId(u.getId());
